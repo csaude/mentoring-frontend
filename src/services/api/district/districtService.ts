@@ -8,51 +8,41 @@ const repo = useRepo(District);
 const { createDistrictFromDTO } = useDistrict();
 
 export default {
-
-    async getByProvince(id: any) {
-        return await api()
-           .get(`/district/getAllOfProvince/${id}`)
-          .then((resp) => {
-            this.generateAndSaveEntityFromDTO(resp.data);
-            return resp;
-          })
-          .catch((error) => {
-            console.log('Error', error.message);
-          });
-      },
-      async getAll() {
-        return await api()
-           .get(`/district/getall`)
-          .then((resp) => {
-            this.generateAndSaveEntityFromDTO(resp.data);
-            return resp;
-          })
-          .catch((error) => {
-            console.log('Error', error.message);
-          });
-      },
-      generateAndSaveEntityFromDTO(dtoList: any) {
-        dtoList.forEach(dto => {
-          const entity = createDistrictFromDTO(dto)
-          repo.save(entity);
-        });
-
-      },
-      deleteAllFromStorage() {
-        repo.flush();
-      },
-      piniaGetAll() {
-        return repo
-                      .query()
-                      .orderBy('district', 'asc')
-                      .get();
-      },
-      getAllDistrictByProvinceId(provinceid: number) {
-        return repo
-                  .query()
-                  .with('province')
-                  .where('province_id', provinceid)
-                  .get();
-      },
-
+  async getByProvince(id: any) {
+    return await api()
+      .get(`/district/getAllOfProvince/${id}`)
+      .then((resp) => {
+        this.generateAndSaveEntityFromDTO(resp.data);
+        return resp;
+      })
+      .catch((error) => {
+        console.log('Error', error.message);
+      });
+  },
+  async getAll() {
+    return await api()
+      .get('/district/getall')
+      .then((resp) => {
+        this.generateAndSaveEntityFromDTO(resp.data);
+        return resp;
+      })
+      .catch((error) => {
+        console.log('Error', error.message);
+      });
+  },
+  generateAndSaveEntityFromDTO(dtoList: any) {
+    dtoList.forEach((dto) => {
+      const entity = createDistrictFromDTO(dto);
+      repo.save(entity);
+    });
+  },
+  deleteAllFromStorage() {
+    repo.flush();
+  },
+  piniaGetAll() {
+    return repo.query().orderBy('district', 'asc').get();
+  },
+  getAllDistrictByProvinceId(provinceid: number) {
+    return repo.query().with('province').where('province_id', provinceid).get();
+  },
 };
