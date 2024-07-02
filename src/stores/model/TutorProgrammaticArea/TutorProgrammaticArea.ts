@@ -1,5 +1,4 @@
 import { Model } from 'pinia-orm';
-import Employee from '../employee/Employee';
 import ProgrammaticArea from '../programmaticArea/ProgrammaticArea';
 import Mentor from '../mentor/Mentor';
 
@@ -8,16 +7,14 @@ export default class TutorProgrammaticArea extends Model {
   static primaryKey = 'id';
   static fields() {
     return {
-      id: this.attr( null),
+      id: this.number(() => 0),
       uuid: this.attr(''),
-      mentor_id: this.attr(''),
-      programmatic_area_id: this.attr(''),
-      lifeCycleStatus: this.attr(''),
-
-      //relationships
-      mentor: this.belongsTo(Mentor, 'mentor_id'),
-      programmaticArea: this.belongsTo(ProgrammaticArea, 'programmatic_area_id'),
-
+      salt: this.attr(''),
+      tutor_id: this.attr(''),
+      programmaticArea_id: this.attr(''),
+      // relationships
+      tutor: this.belongsTo(Mentor, 'tutor_id'),
+      programmaticArea: this.belongsTo(ProgrammaticArea, 'programmaticArea_id'),
     };
   }
   static piniaOptions = {

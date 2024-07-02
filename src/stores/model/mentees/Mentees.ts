@@ -10,6 +10,7 @@ export default class Mentees extends Model {
       id: this.attr(null),
       uuid: this.attr(''),
       employee_id: this.attr(''),
+      zeroEvaluationDone: this.attr(false),
       // relationships
       employee: this.belongsTo(Employee, 'employee_id'),
     };

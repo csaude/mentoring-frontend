@@ -215,8 +215,8 @@ const editMentor = (mentor) => {
 
 const clearSearchParams =()=> {
     searchParams.value = new Mentor({
-                            employee: new Employee()
-                        })
+        employee: new Employee()
+    })
 }
 const search = () => {
     const params = {
