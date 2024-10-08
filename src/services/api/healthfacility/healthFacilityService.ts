@@ -110,4 +110,16 @@ export default {
         console.error('Error', error.message);
       });
   },
+
+  async getAllHealthFacilities() {
+    return await api()
+      .get('/healthFacilities/getAll')
+      .then((resp) => {
+        this.generateAndSaveEntityFromDTO(resp.data);
+        return resp;
+      })
+      .catch((error) => {
+        console.error('Error', error.message);
+      });
+  },
 };
