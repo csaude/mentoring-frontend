@@ -1,115 +1,91 @@
 <template>
-  <div class="q-mx-md">
-    <ul>
-      <li>
-        <a
-          @click="changeStep('programs')"
-          :class="{ selected: step === 'programs' }"
-          >Programas</a
-        >
-      </li>
-      <li>
-        <a
-          @click="changeStep('programmaticArea')"
-          :class="{ selected: step === 'programmaticArea' }"
-          >Áreas de Mentoria</a
-        >
-      </li>
-      <li>
-        <a
-          @click="changeStep('professionalCategory')"
-          :class="{ selected: step === 'professionalCategory' }"
-          >Categorias Profissionais</a
-        >
-      </li>
-      <li>
-        <a
-          @click="changeStep('question')"
-          :class="{ selected: step === 'question' }"
-          >Competências</a
-        >
-      </li>
-      <li>
-        <a
-          @click="changeStep('healthFacility')"
-          :class="{ selected: step === 'healthFacility' }"
-          >Unidades Sanitárias</a
-        >
-      </li>
-      <li>
-        <a
-          @click="changeStep('partner')"
-          :class="{ selected: step === 'partner' }"
-          >Instituições</a
-        >
-      </li>
-      <li>
-        <a @click="changeStep('user')" :class="{ selected: step === 'user' }"
-          >Utilizadores</a
-        >
-      </li>
-    </ul>
-  </div>
-  <div style="height: 100%">
-    <programs v-if="isProgramsStep" />
-    <questions v-if="isQuestionStep" />
-    <programmatic-areas v-if="isProgrammaticAreaStep" />
-    <professional-categories v-if="isProfessionalCategoryStep" />
-    <health-facilities v-if="isHealthFacilityStep" />
-    <partners v-if="isPartnerStep" />
-    <users
-      v-if="isUserStep"
-      @create="changeStep('userForm')"
-      @reset-password="changeStep('passwordReset')"
-      @select-user="onUserSelection"
-      @edit-user="changeStep('userEdit')"
-    />
-    <user-form
-      v-if="isUserFormStep || isUserEditStep"
-      @cancel="changeStep('user')"
-    />
-    <password-reset v-if="isPasswordResetStep" @cancel="changeStep('user')" />
+  <div class="settings-page q-pa-md bg-white">
+    <q-tabs
+      v-model="activeTab"
+      class="text-primary q-px-md"
+      active-color="primary"
+      indicator-color="primary"
+      align="left"
+      dense
+    >
+      <q-tab name="programs" label="Programas" />
+      <q-tab name="programmaticArea" label="Áreas de Mentoria" />
+      <q-tab name="professionalCategory" label="Categorias Profissionais" />
+      <q-tab name="question" label="Competências" />
+      <q-tab name="healthFacility" label="Unidades Sanitárias" />
+      <q-tab name="partner" label="Instituições" />
+      <q-tab name="user" label="Utilizadores" />
+    </q-tabs>
+
+    <q-separator class="q-mx-md" />
+
+    <q-tab-panels v-model="activeTab" animated class="q-mt-md">
+      <q-tab-panel name="programs">
+        <Programs />
+      </q-tab-panel>
+
+      <q-tab-panel name="programmaticArea">
+        <ProgrammaticAreas />
+      </q-tab-panel>
+
+      <q-tab-panel name="professionalCategory">
+        <ProfessionalCategories />
+      </q-tab-panel>
+
+      <q-tab-panel name="question">
+        <Questions />
+      </q-tab-panel>
+
+      <q-tab-panel name="healthFacility">
+        <HealthFacilities />
+      </q-tab-panel>
+
+      <q-tab-panel name="partner">
+        <Partners />
+      </q-tab-panel>
+
+      <q-tab-panel name="user">
+        <Users
+          @create="activeTab = 'userForm'"
+          @reset-password="activeTab = 'passwordReset'"
+          @select-user="onUserSelection"
+          @edit-user="activeTab = 'userEdit'"
+        />
+      </q-tab-panel>
+
+      <q-tab-panel name="userForm">
+        <UserForm @cancel="activeTab = 'user'" />
+      </q-tab-panel>
+
+      <q-tab-panel name="userEdit">
+        <UserForm @cancel="activeTab = 'user'" />
+      </q-tab-panel>
+
+      <q-tab-panel name="passwordReset">
+        <PasswordReset @cancel="activeTab = 'user'" />
+      </q-tab-panel>
+    </q-tab-panels>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import Programs from 'src/components/Programs/Programs.vue';
-import Questions from 'src/components/Questions/Questions.vue';
-import ProgrammaticAreas from 'src/components/ProgrammaticAreas/ProgrammaticAreas.vue';
-import ProfessionalCategories from 'src/components/ProfessionalCategories/ProfessionalCategories.vue';
-import HealthFacilities from 'src/components/HealthFacilities/HealthFacilities.vue';
-import Partners from 'src/components/Partners/Partners.vue';
+import { ref, onMounted } from 'vue';
+import Programs from 'src/components/settings/ProgramSettings.vue';
+import ProgrammaticAreas from 'src/components/settings/ProgrammaticAreas.vue';
+import Questions from 'src/components/settings/Questions.vue';
+import ProfessionalCategories from 'src/components/settings/ProfessionalCategories.vue';
+import HealthFacilities from 'src/components/settings/HealthFacility.vue';
+import Partners from 'src/components/settings/Partners.vue';
 import Users from 'src/components/Users/Users.vue';
 import UserForm from 'src/components/Users/UserForm.vue';
 import PasswordReset from 'src/components/Users/PasswordReset.vue';
 import { useLoading } from 'src/composables/shared/loading/loading';
-import programService from 'src/services/api/program/programService';
-import programmaticAreasService from 'src/services/api/programmaticArea/programmaticAreaService';
-import professionalCategoryService from 'src/services/api/professionalcategory/professionalCategoryService';
-import questionService from 'src/services/api/question/questionService';
-import healthFacilityService from 'src/services/api/healthfacility/healthFacilityService';
-import questionCategoryService from 'src/services/api/question/questionCategoryService';
-import partnerService from 'src/services/api/partner/partnerService';
 import roleService from 'src/services/api/role/roleService';
-import userService from 'src/services/api/user/UsersService';
-import { computed } from 'vue';
-import { onMounted } from 'vue';
-import { provide } from 'vue';
 
 const { closeLoading, showloading } = useLoading();
-const step = ref(null);
+const activeTab = ref('programs');
 const selectedUser = ref(null);
 
-const params = {
-  page: 0,
-  size: 10,
-};
-
-const paramsQuestions = {
-  page: 0,
-  size: 100,
-};
 
 onMounted(() => {
   showloading();
@@ -117,95 +93,18 @@ onMounted(() => {
 });
 
 const init = () => {
-  programService.getAll().then((res) => {
-    changeStep('programs');
-  });
-  programmaticAreasService.getAll();
-  professionalCategoryService.getAll();
-  questionService.getAll(paramsQuestions);
-  healthFacilityService.getAll(params);
-  partnerService.getAll();
+  activeTab.value = 'programs';
   roleService.getAll();
   closeLoading();
-};
-
-const changeStep = (value) => {
-  step.value = value;
 };
 
 const onUserSelection = (user) => {
   selectedUser.value = user;
 };
-
-const isProgramsStep = computed(() => {
-  return step.value === 'programs';
-});
-const isProgrammaticAreaStep = computed(() => {
-  return step.value === 'programmaticArea';
-});
-const isHealthFacilityStep = computed(() => {
-  return step.value === 'healthFacility';
-});
-const isProfessionalCategoryStep = computed(() => {
-  return step.value === 'professionalCategory';
-});
-const isQuestionStep = computed(() => {
-  return step.value === 'question';
-});
-const isPartnerStep = computed(() => {
-  return step.value === 'partner';
-});
-const isUserStep = computed(() => {
-  return step.value === 'user';
-});
-const isUserFormStep = computed(() => {
-  return step.value === 'userForm';
-});
-const isUserEditStep = computed(() => {
-  return step.value === 'userEdit';
-});
-const isPasswordResetStep = computed(() => {
-  return step.value === 'passwordReset';
-});
-
-provide('step', step);
-provide('selectedUser', selectedUser);
 </script>
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-}
-
-ul {
-  list-style-type: none;
-  padding: 0;
-  margin-bottom: 10px;
-  border-bottom: 2px solid orange;
-}
-
-li {
-  display: inline-block;
-  margin-right: 10px;
-}
-
-li a {
-  text-decoration: none;
-  padding: 5px 10px;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  color: #168fc7;
-}
-
-li a:hover {
-  background-color: #f0f0f0;
-  border-top: 2px solid orange;
-  border-left: 2px solid orange;
-  border-right: 2px solid orange;
-}
-
-.selected {
-  border-color: #007bff;
-  background-color: #cce5ff;
+<style scoped>
+.settings-page {
+  min-height: 100vh;
 }
 </style>

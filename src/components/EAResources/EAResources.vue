@@ -52,15 +52,6 @@
                     {{ props.node.label }}
                   </q-btn>
                   <div v-else class="row">
-                    <!-- <span
-                      @click="resourceRequest(props.node)"
-                      :class="{
-                        'text-blue': props.node.clickable === 2,
-                        'q-mt-sm': true,
-                      }"
-                    >
-                      {{ props.node.label }}
-                    </span> -->
                     <q-icon
                       v-if="props.node.isLink"
                       name="link"
@@ -81,18 +72,6 @@
                         {{ props.node.description }}
                       </q-tooltip>
                     </span>
-
-                    <!--                  <q-btn-->
-                    <!--                      v-if="props.node.clickable === 2"-->
-                    <!--                      flat-->
-                    <!--                      round-->
-                    <!--                      class="q-ml-md col"-->
-                    <!--                      color="red-8"-->
-                    <!--                      icon="cancel"-->
-                    <!--                      @click="removeResource(props.node)"-->
-                    <!--                  >-->
-                    <!--                    <q-tooltip class="bg-red-5">Remoer Recurso</q-tooltip>-->
-                    <!--                  </q-btn>-->
                   </div>
                 </div>
               </template>
@@ -159,7 +138,6 @@
               type="radio"
               inline
             />
-            <div class="q-mt-md">Selecionado: {{ tipoRecurso }}</div>
           </div>
 
           <!-- Campos comuns para nome e descrição -->
@@ -225,9 +203,9 @@
             dense
             outlined
             v-model="linkUrl"
-            label="URL do Link"
+            label="Link do Recurso"
             type="url"
-            :rules="[(val) => !!val || 'Por favor indique a URL do link.']"
+            :rules="[(val) => !!val || 'Por favor indique o link do recurso.']"
           />
         </div>
       </q-card-section>
@@ -593,7 +571,7 @@ const doPatchForFile = async (nodes) => {
 
   resourceService.updateResourceTreeWithoutFile(resource).then((res) => {
     if (res && (res.status === 200 || res.status === 201)) {
-      alertSucess('Recurso (link) atualizado com sucesso.');
+      alertSucess('Recurso atualizado com sucesso.');
       loadResources();
     } else {
       alertError('Erro ao atualizar o recurso.');

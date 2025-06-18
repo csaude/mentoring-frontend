@@ -1,6 +1,6 @@
 {
   "name": "mentoring-frontend",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Projecto Mentoria",
   "productName": "Mentoria",
   "author": "Voloide Tamele",
@@ -27,6 +27,7 @@
     "quasar": "^2.6.0",
     "reflect-metadata": "^0.2.1",
     "sweetalert": "^2.1.2",
+    "typeorm": "^0.3.24",
     "vue": "^3.0.0",
     "vue-i18n": "^9.2.2",
     "vue-router": "^4.0.0",

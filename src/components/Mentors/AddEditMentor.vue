@@ -212,7 +212,7 @@
                 class="col q-ml-md"
                 use-input
                 hide-selected
-                @update:model-value="(val) => onChangeVinculo(val)"
+                @update:model-value="onChangeVinculo"
                 fill-input
                 input-debounce="0"
                 dense
@@ -270,7 +270,7 @@
                 hide-selected
                 fill-input
                 input-debounce="0"
-                @update:model-value="onChangeProvincia()"
+                @update:model-value="onChangeProvincia"
                 dense
                 outlined
                 ref="provinceRef"
@@ -299,6 +299,7 @@
                 option-value="id"
                 option-label="description"
                 @filter="filterDistricts"
+                @update:model-value="onChangeDistrito"
                 label="Distrito"
               >
                 <template v-slot:no-option>
@@ -345,6 +346,7 @@
                 label="Cancelar"
                 class="float-right"
                 color="red"
+                type="button"
                 @click="cancel"
               />
               <q-btn
@@ -361,49 +363,46 @@
   </div>
 </template>
 <script setup>
-import { inject, ref, computed, onMounted } from 'vue';
+// Imports
+import { inject, ref, computed, onMounted, watch } from 'vue';
 import Mentor from 'src/stores/model/mentor/Mentor';
 import Employee from 'src/stores/model/employee/Employee';
-import provinceService from 'src/services/api/province/provinceService';
-import districtService from 'src/services/api/district/districtService';
-import healthFacilityService from 'src/services/api/healthfacility/healthFacilityService';
-import professionalCategoryService from 'src/services/api/professionalcategory/professionalCategoryService';
 import Location from 'src/stores/model/location/Location';
 import { useStringUtils } from 'src/composables/shared/stringutils/stringUtils';
-import partnerService from 'src/services/api/partner/partnerService';
 import useMentor from 'src/composables/mentor/mentorMethods';
 import mentorService from 'src/services/api/mentor/mentorService';
 import { useSwal } from 'src/composables/shared/dialog/dialog';
 import { Loading, QSpinnerRings } from 'quasar';
-import programmaticAreaService from "src/services/api/programmaticArea/programmaticAreaService";
+import { useProvinceStore } from 'src/stores/province/ProvinceStore';
+import { useDistrictStore } from 'src/stores/district/DistrictStore';
+import { useHealthFacilityStore } from 'src/stores/healthFacility/HealthFacilityStore';
+import { useProfessionalCategoryStore } from 'src/stores/professionalCategory/ProfessionalCategoryStore';
+import { usePartnerStore } from 'src/stores/partner/PartnerStore';
+import partnerService from 'src/services/api/partner/partnerService';
 
-const mentor = ref(
-  new Mentor({
-    employee: new Employee({
-      locations: [
-        {
-          location: new Location(),
-        },
-      ],
-    }),
-  })
-);
+// Stores
+const provinceStore = useProvinceStore();
+const districtStore = useDistrictStore();
+const healthFacilityStore = useHealthFacilityStore();
+const professionalCategoryStore = useProfessionalCategoryStore();
+const partnerStore = usePartnerStore();
 
+// State
+const mentor = ref(new Mentor({ employee: new Employee({ locations: [{ location: new Location() }] }) }));
 const emit = defineEmits(['goToMentoringAreas', 'close']);
-
-const { createDTOFromMentor } = useMentor();
+const { createDTOFromMentor, createMentorFromDTO } = useMentor();
 const { stringContains } = useStringUtils();
 const { alertSucess, alertError, alertSucessAction } = useSwal();
+
 const filterRedDistricts = ref([]);
 const filterRedHealthFacilities = ref([]);
 const filterRedCategories = ref([]);
 const filterRedPartners = ref([]);
 const selectedMentorLaborInfo = ref('');
 const mentorLaborInfo = ref(['SNS', 'ONG']);
-const location = ref(new Location());
 const partnerRefHasError = ref(true);
 
-//Ref's
+// Form Refs
 const nameRef = ref(null);
 const surnameRef = ref(null);
 const nuitRef = ref(null);
@@ -416,56 +415,46 @@ const partnerRef = ref(null);
 const provinceRef = ref(null);
 const districtRef = ref(null);
 const hfRef = ref(null);
-
-const selectedMentor = inject('selectedMentor');
-const step = inject('step');
-
-const isEditStep = computed(() => {
-  return step.value === 'edit';
-});
-
-const init = () => {
-  if (isEditStep.value) {
-    mentor.value = Object.assign({}, selectedMentor.value);
-    selectedMentorLaborInfo.value =
-      mentor.value.employee.partner.name === 'MISAU' ? 'SNS' : 'ONG';
-  }
-};
-onMounted(() => {
-  init();
-});
-
-const provinces = computed(() => {
-  return provinceService.piniaGetAll();
-});
-
-const isPartnerMentor = computed(() => {
-  return selectedMentorLaborInfo.value === 'ONG';
-});
-
-const categories = computed(() => {
-  return professionalCategoryService.piniaGetAll();
-});
-
-const districts = computed(() => {
-  if (
-    mentor.value.employee.locations[0].province !== null &&
-    mentor.value.employee.locations[0].province !== undefined
-  ) {
-    return districtService.getAllDistrictByProvinceId(
-      mentor.value.employee.locations[0].province.id
-    );
-  } else {
-    return null;
-  }
-});
-
-const partners = computed(() => {
-  return partnerService.piniaGetAll();
-});
-
 const myForm = ref(null);
 
+// Props
+const selectedMentor = inject('selectedMentor');
+const step = inject('step');
+const isEditStep = computed(() => step.value === 'edit');
+const mentorLocations = ref([]);
+
+onMounted(() => {
+  if (isEditStep.value) {
+    mentor.value = Object.assign({}, selectedMentor.value);
+    selectedMentorLaborInfo.value = mentor.value.employee.partner?.name === 'MISAU' ? 'SNS' : 'ONG';
+    healthFacilityStore.fetchByDistrictId(mentor.value.employee.locations[0].district?.id);
+  }
+});
+
+
+// Computed
+const isPartnerMentor = computed(() => selectedMentorLaborInfo.value === 'ONG');
+const provinces = computed(() => provinceStore.getAllProvincesAcrossPages());
+const categories = computed(() => professionalCategoryStore.getAllCategoriesAcrossPages());
+const partners = computed(() => partnerStore.getAllPartnersAcrossPages());
+
+const districts = computed(() => {
+  const provinceId = mentor.value.employee.locations[0].province?.id;
+  if (!provinceId) return [];
+  return districtStore.getAllDistrictsAcrossPages().filter((district) => district.province?.id === provinceId);
+});
+
+const healthFacilities = computed(() => healthFacilityStore.currentPageHealthFacilities);
+
+// Validações
+const isValidEmail = (email) => /^[A-Za-z0-9+_.-]+@(.+)$/.test(email);
+const isValidNuit = (nuit) => nuit !== '' && !stringContains(nuit, '#');
+const isValidTrainingYear = (year) => year >= 1960 && year !== '' && !stringContains(year, '#');
+const isMinYear = (year) => year >= 1960;
+const isMaxYear = (year) => year <= new Date().getFullYear();
+const isValidPhoneNumber = (phoneNumber) => phoneNumber !== '' && !stringContains(phoneNumber, '_');
+
+// Handlers
 const submitForm = () => {
   nameRef.value.validate();
   surnameRef.value.validate();
@@ -475,13 +464,8 @@ const submitForm = () => {
   categoryRef.value.validate();
   trainingYearRef.value.validate();
   vinculoRef.value.validate();
-
-  if (!mentor.value.employee.partner) {
-    partnerRef.value.validate();
-  }
-  if (mentor.value.employee.partner) {
-    partnerRefHasError.value = partnerRef.value?.hasError
-  };
+  if (!mentor.value.employee.partner) partnerRef.value?.validate();
+  if (mentor.value.employee.partner) partnerRefHasError.value = partnerRef.value?.hasError;
   provinceRef.value.validate();
   districtRef.value.validate();
   hfRef.value.validate();
@@ -499,210 +483,75 @@ const submitForm = () => {
     !hfRef.value.hasError &&
     !partnerRefHasError.value
   ) {
-    Loading.show({
-      spinner: QSpinnerRings,
-    });
+    Loading.show({ spinner: QSpinnerRings });
     const target_copy = Object.assign({}, mentor.value);
-    if (isEditStep.value) {
-      mentorService
-        .update(createDTOFromMentor(new Mentor(target_copy)))
-        .then((resp) => {
-          if (resp.status === 200 || resp.status === 201) {
-            alertSucess('Mentor actualizado.').then((result) => {
+    const dto = createDTOFromMentor(new Mentor(target_copy));
+
+    const action = isEditStep.value ? mentorService.update(dto) : mentorService.save(dto);
+    action.then((resp) => {
+      if (resp.status === 200 || resp.status === 201) {
+        if (isEditStep.value) {
+          alertSucess('Mentor actualizado.').then(() => emit('close'));
+        } else {
+          alertSucessAction('Mentor criado com sucesso, avançar para áreas de mentória').then((result) => {
+            if (result) {
+              selectedMentor.value = createMentorFromDTO(resp.data);
+              emit('goToMentoringAreas', selectedMentor.value);
+            } else {
               emit('close');
-            });
-          } else {
-            alertError(resp.message);
-          }
-          Loading.hide();
-        })
-        .catch((error) => {
-          Loading.hide();
-          console.error('Error', error);
-        });
-    } else {
-      mentorService
-        .save(createDTOFromMentor(new Mentor(target_copy)))
-        .then((resp) => {
-          if (resp.status === 200 || resp.status === 201) {
-            alertSucessAction(
-              'Mentor criado com sucesso, avançar para áreas de mentória'
-            ).then(async (result) => {
-                if (result) {
-                    await programmaticAreaService.getAll()
-                    selectedMentor.value = useMentor().createMentorFromDTO(resp.data);
-                    emit('goToMentoringAreas', selectedMentor.value);
-                } else {
-                    emit('close');
-                }
-            });
-          } else {
-            alertError(resp.response.data.message);
-          }
-          Loading.hide();
-        })
-        .catch((error) => {
-          Loading.hide();
-          console.error('Error', error);
-        });
-    }
-  }
-};
-const isValidEmail = (email) => {
-  const regex = /^[A-Za-z0-9+_.-]+@(.+)$/;
-  return regex.test(email);
-};
-const isValidNuit = (nuit) => {
-  return nuit !== '' && !stringContains(nuit, '#');
-};
-
-const isValidTrainingYear = (year) => {
-  return year >= 1960 && year !== '' && !stringContains(year, '#');
-};
-
-const isMinYear = (year) => {
-  return year >= 1960;
-};
-
-const isMaxYear = (year) => {
-  return year <= new Date().getFullYear();
-};
-
-const isValidPhoneNumber = (phoneNumber) => {
-  return phoneNumber !== '' && !stringContains(phoneNumber, '_');
-};
-
-const filterPartners = (val, update, abort) => {
-  const stringOptions = partners;
-  if (val === '') {
-    update(() => {
-      filterRedPartners.value = stringOptions.value.map((partner) => partner);
-    });
-  } else if (stringOptions.value.length === 0) {
-    update(() => {
-      filterRedPartners.value = [];
-    });
-  } else {
-    update(() => {
-      filterRedPartners.value = stringOptions.value
-        .map((partner) => partner)
-        .filter((partner) => {
-          return (
-            partner &&
-            partner.description.toLowerCase().indexOf(val.toLowerCase()) !== -1
-          );
-        });
-    });
-  }
-};
-
-const filterDistricts = (val, update, abort) => {
-  const stringOptions = districts;
-  if (val === '') {
-    update(() => {
-      filterRedDistricts.value = stringOptions.value.map(
-        (district) => district
-      );
-    });
-  } else if (stringOptions.value.length === 0) {
-    update(() => {
-      filterRedDistricts.value = [];
-    });
-  } else {
-    update(() => {
-      filterRedDistricts.value = stringOptions.value
-        .map((district) => district)
-        .filter((district) => {
-          return (
-            district &&
-            district.description.toLowerCase().indexOf(val.toLowerCase()) !== -1
-          );
-        });
-    });
-  }
-};
-
-const healthFacilities = computed(() => {
-  if (
-    mentor.value.employee.locations[0].district !== null &&
-    mentor.value.employee.locations[0].district !== undefined
-  ) {
-    return healthFacilityService.getAllOfDistrict(
-      mentor.value.employee.locations[0].district.id
-    );
-  } else {
-    return null;
-  }
-});
-
-const filterHealthFacilities = (val, update, abort) => {
-  const stringOptions = healthFacilities;
-  if (val === '') {
-    update(() => {
-      filterRedHealthFacilities.value = stringOptions.value.map(
-        (healthFacility) => healthFacility
-      );
-    });
-  } else if (stringOptions.value.length === 0) {
-    update(() => {
-      filterRedHealthFacilities.value = [];
-    });
-  } else {
-    update(() => {
-      filterRedHealthFacilities.value = stringOptions.value
-        .map((healthFacility) => healthFacility)
-        .filter((healthFacility) => {
-          return (
-            healthFacility &&
-            healthFacility.healthFacility
-              .toLowerCase()
-              .indexOf(val.toLowerCase()) !== -1
-          );
-        });
-    });
-  }
-};
-
-const filterCategories = (val, update, abort) => {
-  const stringOptions = categories;
-  if (val === '') {
-    update(() => {
-      filterRedCategories.value = stringOptions.value.map(
-        (category) => category
-      );
-    });
-  } else if (stringOptions.value.length === 0) {
-    update(() => {
-      filterRedCategories.value = [];
-    });
-  } else {
-    update(() => {
-      filterRedCategories.value = stringOptions.value
-        .map((category) => category)
-        .filter((category) => {
-          return (
-            category &&
-            category.description.toLowerCase().indexOf(val.toLowerCase()) !== -1
-          );
-        });
+            }
+          });
+        }
+      } else {
+        alertError(resp.response?.data?.message || resp.message);
+      }
+      Loading.hide();
+    }).catch((err) => {
+      console.error(err);
+      Loading.hide();
     });
   }
 };
 
 const onChangeProvincia = () => {
   mentor.value.employee.locations[0].district = '';
-  mentor.value.employee.locations[0].district = '';
-};
-const cancel = () => {
-  emit('close');
+  mentor.value.employee.locations[0].healthFacility = '';
 };
 
-const onChangeVinculo = (selected) => {
+const onChangeDistrito = async (district) => {
+  mentor.value.employee.locations[0].healthFacility = '';
+  if (district?.id) {
+    await healthFacilityStore.fetchByDistrictId(district.id);
+  }
+};
+
+const onChangeVinculo = async (selected) => {
   if (selected === 'SNS') {
-    mentor.value.employee.partner = partnerService.getByName('MISAU');
+    mentor.value.employee.partner = await partnerService.getByName('MISAU');
   } else {
     mentor.value.employee.partner = '';
   }
 };
+
+const cancel = () => emit('close');
+
+const filterItems = (source, key, val, update, targetRef) => {
+  if (val === '') {
+    update(() => {
+      targetRef.value = source.value.map((item) => item);
+    });
+  } else {
+    update(() => {
+      targetRef.value = source.value.filter((item) =>
+        item[key].toLowerCase().includes(val.toLowerCase())
+      );
+    });
+  }
+};
+
+const filterDistricts = (val, update) => filterItems(districts, 'description', val, update, filterRedDistricts);
+const filterHealthFacilities = (val, update) => filterItems(healthFacilities, 'healthFacility', val, update, filterRedHealthFacilities);
+const filterCategories = (val, update) => filterItems(categories, 'description', val, update, filterRedCategories);
+const filterPartners = (val, update) => filterItems(partners, 'description', val, update, filterRedPartners);
 </script>
 <style></style>
