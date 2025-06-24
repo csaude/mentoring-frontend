@@ -15,7 +15,13 @@ const props = defineProps({
   pagination: Object,
   rowsPerPageOptions: Array,
   confirmError: Function,
-  confirmDelete: Function
+  confirmDelete: Function,
+  useExternalAdd: Boolean,
+  useExternalEdit: Boolean,
+  hideDelete: {
+    type: Boolean,
+    default: false
+  }
 })
 
 const searchParams = ref('')
@@ -26,7 +32,9 @@ const emit = defineEmits([
   'delete',
   'search',
   'toggle-status',
-  'request'
+  'request',
+  'add',
+  'edit'
 ])
 
 const paginationLocal = ref({
@@ -118,11 +126,12 @@ const onRequest = (props) => {
             dense
             icon="add"
             class="q-ml-sm"
-            @click="addRow"
+            @click="props.useExternalAdd ? emit('add') : addRow()"
             :disable="isEditingAnyRow"
           >
             <q-tooltip class="bg-primary">Criar novos {{ props.title }}</q-tooltip>
           </q-btn>
+
         </template>
       </q-banner>
     </q-card-section>
@@ -253,8 +262,21 @@ const onRequest = (props) => {
                 @click="toggleStatus(row)"
                 :disable="isEditingAnyRow"
               />
-              <q-btn dense flat icon="edit" color="primary" @click="editRow(row)" />
-              <q-btn dense flat icon="delete" color="red" @click="deleteRow(row)" />
+              <q-btn
+                dense
+                flat
+                icon="edit"
+                color="primary"
+                @click="props.useExternalEdit ? emit('edit', row) : editRow(row)"
+              />
+              <q-btn
+                v-if="!props.hideDelete"
+                dense
+                flat
+                icon="delete"
+                color="red"
+                @click="deleteRow(row)"
+              />
             </div>
           </q-td>
         </template>

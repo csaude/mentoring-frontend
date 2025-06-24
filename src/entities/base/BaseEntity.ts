@@ -26,10 +26,6 @@ export abstract class BaseEntity {
   updateBaseFieldsFromDTO(dto: any): void {
     if (dto.id !== undefined) this.id = dto.id
     if (dto.uuid !== undefined) this.uuid = dto.uuid
-    if (dto.createdBy !== undefined) this.createdBy = dto.createdBy
-    if (dto.createdAt !== undefined) this.createdAt = new Date(dto.createdAt)
-    if (dto.updatedBy !== undefined) this.updatedBy = dto.updatedBy
-    if (dto.updatedAt !== undefined) this.updatedAt = new Date(dto.updatedAt)
     if (dto.lifeCycleStatus !== undefined) this.lifeCycleStatus = dto.lifeCycleStatus
   }
 
@@ -38,10 +34,6 @@ export abstract class BaseEntity {
     return {
       id: this.id,
       uuid: this.uuid,
-      createdBy: this.createdBy,
-      createdAt: this.createdAt?.toISOString() ?? null,
-      updatedBy: this.updatedBy ?? null,
-      updatedAt: this.updatedAt?.toISOString() ?? null,
       lifeCycleStatus: this.lifeCycleStatus
     }
   }

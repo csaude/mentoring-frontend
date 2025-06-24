@@ -45,12 +45,13 @@
       </q-tab-panel>
 
       <q-tab-panel name="user">
-        <Users
+        <UserSearch @select-user="onUserSelection" />
+        <!-- <Users
           @create="activeTab = 'userForm'"
           @reset-password="activeTab = 'passwordReset'"
           @select-user="onUserSelection"
           @edit-user="activeTab = 'userEdit'"
-        />
+        /> -->
       </q-tab-panel>
 
       <q-tab-panel name="userForm">
@@ -80,7 +81,7 @@ import Users from 'src/components/Users/Users.vue';
 import UserForm from 'src/components/Users/UserForm.vue';
 import PasswordReset from 'src/components/Users/PasswordReset.vue';
 import { useLoading } from 'src/composables/shared/loading/loading';
-import roleService from 'src/services/api/role/roleService';
+import UserSearch from 'src/components/Users/UserSearch.vue';
 
 const { closeLoading, showloading } = useLoading();
 const activeTab = ref('programs');
@@ -94,7 +95,6 @@ onMounted(() => {
 
 const init = () => {
   activeTab.value = 'programs';
-  roleService.getAll();
   closeLoading();
 };
 

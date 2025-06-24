@@ -8,7 +8,6 @@ export function useEditableTable(props, emit) {
     rows.value = [...val]
   })
 
-  // ⏳ Controle de loading confiável com debounce
   let loadingShown = false
 
   watchEffect(() => {
@@ -32,11 +31,15 @@ export function useEditableTable(props, emit) {
   })
 
   const editingRows = ref(new Set())
-
   const isEditing = (row) => editingRows.value.has(row)
   const isEditingAnyRow = computed(() => editingRows.value.size > 0)
 
   const addRow = () => {
+    if (props.useExternalAdd) {
+      emit('add')
+      return
+    }
+
     if (isEditingAnyRow.value) {
       props.confirmError?.('Termine a edição atual antes de criar um novo registo.')
       return
@@ -59,6 +62,11 @@ export function useEditableTable(props, emit) {
   }
 
   const editRow = (row) => {
+    if (props.useExternalEdit) {
+      emit('edit', row)
+      return
+    }
+
     if (isEditingAnyRow.value) {
       props.confirmError?.('Termine a edição atual antes de editar outro registo.')
       return

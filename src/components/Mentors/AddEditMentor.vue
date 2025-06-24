@@ -436,7 +436,10 @@ onMounted(() => {
 const isPartnerMentor = computed(() => selectedMentorLaborInfo.value === 'ONG');
 const provinces = computed(() => provinceStore.getAllProvincesAcrossPages());
 const categories = computed(() => professionalCategoryStore.getAllCategoriesAcrossPages());
-const partners = computed(() => partnerStore.getAllPartnersAcrossPages());
+const partners = computed(() =>
+  partnerStore.getAllPartnersAcrossPages().filter(p => p.name !== 'MISAU')
+)
+
 
 const districts = computed(() => {
   const provinceId = mentor.value.employee.locations[0].province?.id;

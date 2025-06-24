@@ -1,6 +1,6 @@
 {
   "name": "mentoring-frontend",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Projecto Mentoria",
   "productName": "Mentoria",
   "author": "Voloide Tamele",
@@ -37,6 +37,7 @@
   "devDependencies": {
     "@intlify/vite-plugin-vue-i18n": "^3.3.1",
     "@quasar/app-vite": "^1.3.0",
+    "@types/lodash": "^4.17.18",
     "@types/node": "^12.20.21",
     "@typescript-eslint/eslint-plugin": "^5.10.0",
     "@typescript-eslint/parser": "^5.10.0",
