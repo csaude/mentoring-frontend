@@ -13,7 +13,7 @@ const { website } = useSystemUtils();
 const { notifyError } = useNotify();
 
 const instance = axios.create({
-  baseURL: '/api',
+  baseURL: 'http://localhost:8087/api',
   responseType: 'json',
   validateStatus(status) {
     return status >= 200 && status < 300;

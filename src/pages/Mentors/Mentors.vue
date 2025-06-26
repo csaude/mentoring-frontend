@@ -1,80 +1,118 @@
 <template>
-    <div style="height: 100%;">
-        <search v-if="isSearchStep" @create="changeStep('create')" @edit="edit" @goToMentoringAreas="goToMentoringAreas" @import="changeStep('import')"/>
-        <import-mentor v-if="isImportStep" @close="close" />
-        <add-edit v-if="isCreateStep || isEditStep" @goToMentoringAreas="goToMentoringAreas" @close="close"/>
-        <manage-mentoring-areas v-if="isEditAreasStep" @close="close"/>
-    </div>
+  <div style="height: 100%;">
+    <search 
+      v-if="isSearchStep" 
+      @create="setStep('create')" 
+      @edit="edit" 
+      @goToMentoringAreas="goToMentoringAreas" 
+      @import="setStep('import')"
+    />
+    <import-mentor 
+      v-if="isImportStep" 
+      @close="close" 
+    />
+    <add-edit 
+      v-if="isCreateStep || isEditStep" 
+      @goToMentoringAreas="goToMentoringAreas" 
+      @close="close" 
+    />
+    <manage-mentoring-areas 
+      v-if="isEditAreasStep" 
+      @close="close" 
+    />
+  </div>
 </template>
+
 <script setup>
-    import Search from 'src/components/Mentors/Search.vue'
-    import ImportMentor from 'src/components/Mentors/ImportMentor.vue'
-    import AddEdit from 'src/components/Mentors/AddEditMentor.vue'
-    import { ref, provide, computed, onMounted } from 'vue';
-    import { useLoading } from 'src/composables/shared/loading/loading';
-    import districtService from 'src/services/api/district/districtService';
-    import healthFacilityService from 'src/services/api/healthfacility/healthFacilityService';
-    import professionalCategoryService from 'src/services/api/professionalcategory/professionalCategoryService';
-    import partnerService from 'src/services/api/partner/partnerService';
-    import Mentor from 'src/stores/model/mentor/Mentor';
-    import ManageMentoringAreas from 'src/components/Mentors/ManageMentoringAreas.vue';
-    import programService from 'src/services/api/program/programService';
-    import programmaticAreaService from 'src/services/api/programmaticArea/programmaticAreaService';
-    import mentorService from 'src/services/api/mentor/mentorService';
+// Vue
+import { ref, provide, computed, onMounted } from 'vue'
 
-    const { closeLoading, showloading } = useLoading();
-    const step = ref('');
-    const selectedMentor = ref(null);
+// Composables
+import { useLoading } from 'src/composables/shared/loading/loading'
 
-    onMounted(() => {
-        showloading()
-        changeStep('search');
-        init();
-    });
+// Components
+import Search from 'src/components/Mentors/Search.vue'
+import ImportMentor from 'src/components/Mentors/ImportMentor.vue'
+import AddEdit from 'src/components/Mentors/AddEditMentor.vue'
+import ManageMentoringAreas from 'src/components/Mentors/ManageMentoringAreas.vue'
 
-    const isSearchStep = computed(() => {
-            return step.value === 'search';
-        });
-    const isCreateStep = computed(() => {
-            return step.value === 'create';
-        });
+// Services
 
-    const isImportStep = computed(() => {
-        return step.value === 'import';
-    });
-    const isEditAreasStep = computed(() => {
-        return step.value === 'editAreas';
-        });
-    const isEditStep = computed(() => {
-        return step.value === 'edit';
-        });
-    const changeStep = (stepp) => {
-        step.value = stepp;
-    }
+import programmaticAreaService from 'src/services/api/programmaticArea/programmaticAreaService'
 
-    const goToMentoringAreas = (mentor) => {
-        selectedMentor.value = mentor;
-        changeStep('editAreas');
-    }
+// Stores
+import { useProvinceStore } from 'src/stores/province/ProvinceStore'
+import { useDistrictStore } from 'src/stores/district/DistrictStore'
+import { useHealthFacilityStore } from 'src/stores/healthFacility/HealthFacilityStore'
+import { useProfessionalCategoryStore } from 'src/stores/professionalCategory/ProfessionalCategoryStore'
+import { usePartnerStore } from 'src/stores/partner/PartnerStore'
 
-    const edit = (mentor) => {
-        selectedMentor.value = mentor;
-        changeStep('edit');
-    }
-    const init = () => {
-        districtService.getAll()
-        healthFacilityService.getAll()
-        professionalCategoryService.getAll()
-        partnerService.getAll()
-        programService.getAll()
-        programmaticAreaService.getAll()
-        // mentorService.search('')
-        closeLoading();
-    }
-    const close = () => {
-        changeStep('search');
-    }
-    provide('step', step);
-    provide('selectedMentor', selectedMentor);
+// Chaves para provide/inject
+const STEP_KEY = 'step'
+const SELECTED_MENTOR_KEY = 'selectedMentor'
 
+// Refs
+const step = ref('')
+const selectedMentor = ref(null)
+
+// Stores
+const provinceStore = useProvinceStore()
+const districtStore = useDistrictStore()
+const healthFacilityStore = useHealthFacilityStore()
+const professionalCategoryStore = useProfessionalCategoryStore()
+const partnerStore = usePartnerStore()
+
+// Loading
+const { closeLoading, showloading } = useLoading()
+
+// Computeds de etapa
+const isSearchStep = computed(() => step.value === 'search')
+const isCreateStep = computed(() => step.value === 'create')
+const isImportStep = computed(() => step.value === 'import')
+const isEditStep = computed(() => step.value === 'edit')
+const isEditAreasStep = computed(() => step.value === 'editAreas')
+
+// Funções de navegação
+const setStep = (value) => {
+  step.value = value
+}
+
+const goToMentoringAreas = (mentor) => {
+  selectedMentor.value = mentor
+  setStep('editAreas')
+}
+
+const edit = (mentor) => {
+  selectedMentor.value = mentor;
+  setStep('edit');
+};
+
+const close = () => {
+  setStep('search')
+}
+
+// Inicialização
+const init = async () => {
+  try {
+    await Promise.all([
+      districtStore.fetchDistricts(),
+      programmaticAreaService.getAll(),
+      provinceStore.fetchProvinces(),
+      professionalCategoryStore.fetchCategories(),
+      partnerStore.fetchPartners()
+    ])
+  } finally {
+    closeLoading()
+  }
+}
+
+onMounted(() => {
+  showloading()
+  setStep('search')
+  init()
+})
+
+// Provide
+provide(STEP_KEY, step)
+provide(SELECTED_MENTOR_KEY, selectedMentor)
 </script>

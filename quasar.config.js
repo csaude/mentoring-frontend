@@ -32,6 +32,7 @@ module.exports = configure(function (/* ctx */) {
     boot: [
       'i18n',
       'axios',
+      'editable-table',
     ],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-js#css

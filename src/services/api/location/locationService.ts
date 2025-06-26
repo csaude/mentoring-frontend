@@ -19,10 +19,17 @@ export default {
       getById(id: any) {
         return locationRepo
             .query()
-            .withAllRecursive(2)
+            .withAll()
             .where('id', id)
             .orderBy('id', 'asc')
             .first();
+      },
+      getByEmployeeId(employeeId: any) {
+        return locationRepo
+            .query()
+            .withAll()
+            .where('employee_id', employeeId)
+            .orderBy('id', 'asc').get();
       }
 
 };
