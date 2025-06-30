@@ -1,5 +1,5 @@
 <template>
-  <div class="q-pt-sm" style="height: 100%;">
+  <div class="q-pt-sm" style="height: 100%">
     <div class="q-ma-md q-pa-md page-container">
       <div class="row">
         <!-- Program Select -->
@@ -66,7 +66,11 @@
           v-model="searchParams.code"
         >
           <template v-slot:append>
-            <q-icon name="close" @click="searchParams.code = ''" class="cursor-pointer" />
+            <q-icon
+              name="close"
+              @click="searchParams.code = ''"
+              class="cursor-pointer"
+            />
           </template>
         </q-input>
 
@@ -80,7 +84,11 @@
           v-model="searchParams.name"
         >
           <template v-slot:append>
-            <q-icon name="close" @click="searchParams.name = ''" class="cursor-pointer" />
+            <q-icon
+              name="close"
+              @click="searchParams.name = ''"
+              class="cursor-pointer"
+            />
           </template>
         </q-input>
 
@@ -129,7 +137,9 @@
           @request="onRequest"
         >
           <template v-slot:no-data="{ icon, filter }">
-            <div class="full-width row flex-center text-primary q-gutter-sm text-body2">
+            <div
+              class="full-width row flex-center text-primary q-gutter-sm text-body2"
+            >
               <span>Sem resultados para visualizar</span>
               <q-icon size="2em" :name="filter ? 'filter_b_and_w' : icon" />
             </div>
@@ -144,37 +154,44 @@
                 {{ props.row.programmaticArea.name }}
               </q-td>
               <q-td key="options" :props="props">
-                  <q-btn
-                      flat
-                      round
-                      class="q-ml-md"
-                      :color="isActive(props.row) ? 'green' : 'red'"
-                      icon="circle"
-                      @click="confirmFormLifeCycleChange(props.row)"
-                  >
-                    <q-tooltip class="bg-green-5">{{ isActive(props.row) ? 'Inactivar Tabela de Competências' : 'Activar Tabela de Competências' }}</q-tooltip>
-                  </q-btn>
+                <q-btn
+                  flat
+                  round
+                  class="q-ml-md"
+                  :color="isActive(props.row) ? 'green' : 'red'"
+                  icon="circle"
+                  @click="confirmFormLifeCycleChange(props.row)"
+                >
+                  <q-tooltip class="bg-green-5">{{
+                    isActive(props.row)
+                      ? 'Inactivar Tabela de Competências'
+                      : 'Activar Tabela de Competências'
+                  }}</q-tooltip>
+                </q-btn>
 
-                  <q-btn
-                      flat
-                      round
-                      class="q-ml-md"
-                      color="yellow-9"
-                      icon="edit"
-                      @click="editForm(props.row)"
+                <q-btn
+                  flat
+                  round
+                  class="q-ml-md"
+                  color="yellow-9"
+                  icon="edit"
+                  @click="editForm(props.row)"
+                >
+                  <q-tooltip class="bg-green-5"
+                    >Editar Tabela de Competências</q-tooltip
                   >
-                    <q-tooltip class="bg-green-5">Editar Tabela de Competências</q-tooltip>
-                  </q-btn>
+                </q-btn>
               </q-td>
             </q-tr>
           </template>
-
         </q-table>
       </div>
       <!-- Add New Competency Table Button -->
       <q-page-sticky position="bottom-right" :offset="[20, 30]" class="row">
         <q-btn round color="primary" icon="add" @click="$emit('create', true)">
-          <q-tooltip class="bg-green-5">Adicionar Nova Tabela de Competências</q-tooltip>
+          <q-tooltip class="bg-green-5"
+            >Adicionar Nova Tabela de Competências</q-tooltip
+          >
         </q-btn>
       </q-page-sticky>
     </div>
@@ -182,7 +199,7 @@
 </template>
 
 <script setup>
-import {ref, computed, onMounted, reactive, watch, inject} from 'vue';
+import { ref, computed, onMounted, reactive, watch, inject } from 'vue';
 import ProgrammaticArea from 'src/stores/model/programmaticArea/ProgrammaticArea';
 import Program from 'src/stores/model/program/Program';
 import User from 'src/stores/model/user/User';
@@ -192,16 +209,16 @@ import programmaticAreaService from 'src/services/api/programmaticArea/programma
 import formService from 'src/services/api/form/formService';
 import { useSwal } from 'src/composables/shared/dialog/dialog';
 import useStepManager from 'src/composables/shared/systemUtils/useStepManager';
-import {Loading, QSpinnerRings} from "quasar";
+import { Loading, QSpinnerRings } from 'quasar';
 import useForm from 'src/composables/form/formMethods';
 
 import { v4 as uuid } from 'uuid';
-import Form from "stores/model/form/Form"; // Import the Step Manager composable
+import Form from 'stores/model/form/Form'; // Import the Step Manager composable
 
 const props = defineProps(['params']);
 
 const { changeStepToEdit } = useStepManager(); // Extract the function to change step to edit
-const {createFormFromDTO} = useForm()
+const { createFormFromDTO, createDTOFromForm } = useForm();
 const searchParams = ref({
   code: '',
   name: '',
@@ -209,10 +226,11 @@ const searchParams = ref({
   programmaticArea: new ProgrammaticArea(),
 });
 
-const form = inject('form')
-const step = inject('step')
+const form = inject('form');
+const step = inject('step');
 
 const isSearchInitialized = ref(false);
+const isLoading = ref(false);
 
 // Pagination state
 const pagination = ref({
@@ -220,8 +238,8 @@ const pagination = ref({
   descending: false,
   page: 1,
   rowsPerPage: 10,
-  rowsNumber: 0
-})
+  rowsNumber: 0,
+});
 
 // Create a local copy of searchParams
 const localSearchParams = ref({ ...props.searchParams });
@@ -231,14 +249,17 @@ const composeForms = (forms) => {
 
   forms.forEach((formObj) => {
     // Check if the question exists in either selectedForm or addedFormQuestions
-    const form = createFormFromDTO(formObj)
-    searchResults.value.push(form)
+    const form = createFormFromDTO(formObj);
+    searchResults.value.push(form);
   });
 };
 
-watch(() => props.searchParams, (newSearchParams) => {
-  localSearchParams.value = { ...newSearchParams };
-});
+watch(
+  () => props.searchParams,
+  (newSearchParams) => {
+    localSearchParams.value = { ...newSearchParams };
+  }
+);
 
 // Search results (populated from API)
 const searchResults = ref([]);
@@ -249,7 +270,9 @@ const { alertError, alertSucess, alertWarningAction } = useSwal();
 
 const programmaticAreas = computed(() => {
   if (searchParams.value.program) {
-    return programmaticAreaService.getProgrammaticAreasByProgramaId(searchParams.value.program.id)
+    return programmaticAreaService.getProgrammaticAreasByProgramaId(
+      searchParams.value.program.id
+    );
   } else {
     return null;
   }
@@ -301,7 +324,8 @@ const filterProgrammaticAreas = (val, update, abort) => {
         .filter((programmaticArea) => {
           return (
             programmaticArea &&
-            programmaticArea.name.toLowerCase().indexOf(val.toLowerCase()) !== -1
+            programmaticArea.name.toLowerCase().indexOf(val.toLowerCase()) !==
+              -1
           );
         });
     });
@@ -315,9 +339,10 @@ const onChangePrograma = () => {
 const isActive = (form) => form.lifeCycleStatus === 'ACTIVE';
 
 const confirmFormLifeCycleChange = (form) => {
-  let msg = form.lifeCycleStatus === 'ACTIVE'
-    ? 'Confirma inactivar a tabela de competências?'
-    : 'Confirma activar a tabela de competências?';
+  let msg =
+    form.lifeCycleStatus === 'ACTIVE'
+      ? 'Confirma inactivar a tabela de competências?'
+      : 'Confirma activar a tabela de competências?';
 
   alertWarningAction(msg).then((result) => {
     if (result) {
@@ -327,7 +352,8 @@ const confirmFormLifeCycleChange = (form) => {
 };
 
 const changeLifeCycle = (form) => {
-  form.lifeCycleStatus = form.lifeCycleStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+  form.lifeCycleStatus =
+    form.lifeCycleStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
   formService
     .changeLifeCycleStatus(createDTOFromForm(form))
     .then(() => {
@@ -335,7 +361,8 @@ const changeLifeCycle = (form) => {
       formService.update(form);
     })
     .catch((error) => {
-      form.lifeCycleStatus = form.lifeCycleStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+      form.lifeCycleStatus =
+        form.lifeCycleStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
       console.error('Error', error.message);
       alertError(error.message);
     });
@@ -344,13 +371,14 @@ const changeLifeCycle = (form) => {
 // Refactor to use `useStepManager` for changing to edit step
 const editForm = (formSelectedd) => {
   form.value = formSelectedd;
-  emit('edit', true)
+  emit('edit', true);
   // changeStepToEdit();
 };
 
 const search = () => {
   formService.deleteAllFromStorage();
 
+  isLoading.value = true; // iniciar loading
   Loading.show({ spinner: QSpinnerRings });
 
   const params = {
@@ -361,21 +389,26 @@ const search = () => {
     page: pagination.value.page - 1,
     size: pagination.value.rowsPerPage,
   };
-  Object.keys(params).forEach((key) => params[key] === '' && delete params[key]);
+  Object.keys(params).forEach(
+    (key) => params[key] === '' && delete params[key]
+  );
   try {
     formService
       .search(params)
       .then((response) => {
         searchResults.value = [];
-        if (response.status === 200 || (response.status === 201)) {
-          if(response.data.content?.length > 0)
-          composeForms(response.data.content)
+        if (response.status === 200 || response.status === 201) {
+          if (response.data.content?.length > 0)
+            composeForms(response.data.content);
           pagination.value.rowsNumber = response.data.totalSize;
         }
-        Loading.hide();
       })
       .catch((error) => {
         console.error(error);
+      })
+      .finally(() => {
+        Loading.hide();
+        isLoading.value = false; // finalizar loading
       });
   } catch (error) {
     console.error(error);
@@ -405,6 +438,4 @@ const onRequest = (props) => {
   // Fetch data based on the updated pagination
   search();
 };
-
 </script>
-
