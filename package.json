@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
+    "@voloide/editable-table": "^1.0.0",
     "axios": "^1.2.1",
     "class-transformer": "^0.5.1",
     "exceljs": "^4.4.0",

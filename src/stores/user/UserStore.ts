@@ -128,7 +128,19 @@ export const useUserStore = defineStore('user', {
     console.error(error)
     throw error
   }
+},
+
+async updateUserPassword(uuid: string, newPassword: string) {
+  this.error = null
+  try {
+    await UserService.updatePassword(uuid, newPassword)
+  } catch (error: any) {
+    this.error = 'Erro ao atualizar senha do utilizador'
+    console.error(error)
+    throw error
+  }
 }
+
 
   }
 })

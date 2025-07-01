@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useUserStore } from 'src/stores/user/UserStore'
 import { usePartnerStore } from 'src/stores/partner/PartnerStore'
 import { useHealthFacilityStore } from 'src/stores/healthFacility/HealthFacilityStore'
@@ -12,9 +12,13 @@ import { useProgramStore } from 'src/stores/program/ProgramStore'
 import { useProfessionalCategoryStore } from 'src/stores/professionalCategory/ProfessionalCategoryStore'
 import { useUserTable } from 'src/composables/user/useUserTable'
 import UserForm from 'src/components/Users/UserForm.vue'
+import UserPasswordResetDialog from 'src/components/Users/UserPasswordResetDialog.vue'
+
 
 const { alertError, alertWarningAction } = useSwal()
 const { handleApiError } = useApiErrorHandler()
+
+defineEmits(['selectUser'])
 
 const userStore = useUserStore()
 const partnerStore = usePartnerStore()
@@ -24,6 +28,18 @@ const districtStore = useDistrictStore()
 const roleStore = useRoleStore()
 const programStore = useProgramStore()
 const professionalCategoryStore = useProfessionalCategoryStore()
+
+const showPasswordResetDialog = ref(false)
+const userToResetPassword = ref(null)
+const extraUserActions = [
+  {
+    icon: 'lock_reset',
+    tooltip: 'Redefinir Senha',
+    emit: 'reset-password',
+    color: 'deep-orange',
+    visible: (row) => row.lifeCycleStatus === 'ACTIVE'
+  }
+]
 
 const {
   nameFilter,
@@ -59,6 +75,11 @@ const onRequest = async (props: any) => {
   await fetchUsers(page - 1, rowsPerPage)
 }
 
+const openPasswordResetDialog = (user) => {
+  userToResetPassword.value = user
+  showPasswordResetDialog.value = true
+}
+
 const onSearch = async (name: string) => {
   nameFilter.value = name
   pagination.value.page = 1
@@ -88,6 +109,8 @@ const onSearch = async (name: string) => {
     @request="onRequest"
     @edit="openEditDialog"
     @add="opneAddDialog"
+    :extra-actions="extraUserActions"
+    @reset-password="openPasswordResetDialog"
   />
 
   <q-dialog v-model="showUserDialog" persistent style="width: 80%;" >
@@ -101,6 +124,16 @@ const onSearch = async (name: string) => {
       />
     </q-card>
   </q-dialog>
+
+  <q-dialog v-model="showPasswordResetDialog" persistent>
+    <q-card style="min-width: 600px;">
+      <UserPasswordResetDialog
+        :user="userToResetPassword"
+        @close="showPasswordResetDialog = false"
+      />
+    </q-card>
+  </q-dialog>
+
 </template>
 
 <style scoped></style>

@@ -38,6 +38,14 @@ export default {
       console.error('Erro na API ao atualizar status do utilizador:', error.response?.data || error.message || error)
       throw error
     }
+  },
+
+  async updatePassword(uuid: string, newPassword: string) {
+    const response = await api().put(`/user/${uuid}/password`, {
+      newPassword
+    })
+    return response.data
   }
+
 
 }
