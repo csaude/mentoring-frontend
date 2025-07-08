@@ -1,5 +1,5 @@
 import { boot } from 'quasar/wrappers'
-import EditableTablePlugin from 'src/plugins/editable-table'
+import EditableTablePlugin from '@voloide/editable-table'
 
 export default boot(({ app }) => {
   app.use(EditableTablePlugin)
