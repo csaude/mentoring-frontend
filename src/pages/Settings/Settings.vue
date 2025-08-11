@@ -10,6 +10,7 @@
     >
       <q-tab name="programs" label="Programas" />
       <q-tab name="programmaticArea" label="Áreas de Mentoria" />
+      <q-tab name="cabinets" label="Sectores" />
       <q-tab name="professionalCategory" label="Categorias Profissionais" />
       <q-tab name="question" label="Competências" />
       <q-tab name="healthFacility" label="Unidades Sanitárias" />
@@ -26,6 +27,10 @@
 
       <q-tab-panel name="programmaticArea">
         <ProgrammaticAreas />
+      </q-tab-panel>
+
+      <q-tab-panel name="cabinets">
+        <CabinetSettings />
       </q-tab-panel>
 
       <q-tab-panel name="professionalCategory">
@@ -46,12 +51,6 @@
 
       <q-tab-panel name="user">
         <UserSearch @select-user="onUserSelection" />
-        <!-- <Users
-          @create="activeTab = 'userForm'"
-          @reset-password="activeTab = 'passwordReset'"
-          @select-user="onUserSelection"
-          @edit-user="activeTab = 'userEdit'"
-        /> -->
       </q-tab-panel>
 
       <q-tab-panel name="userForm">
@@ -77,7 +76,7 @@ import Questions from 'src/components/settings/Questions.vue';
 import ProfessionalCategories from 'src/components/settings/ProfessionalCategories.vue';
 import HealthFacilities from 'src/components/settings/HealthFacility.vue';
 import Partners from 'src/components/settings/Partners.vue';
-import Users from 'src/components/Users/Users.vue';
+import CabinetSettings from 'src/components/settings/CabinetSettings.vue';
 import UserForm from 'src/components/Users/UserForm.vue';
 import PasswordReset from 'src/components/Users/PasswordReset.vue';
 import { useLoading } from 'src/composables/shared/loading/loading';
