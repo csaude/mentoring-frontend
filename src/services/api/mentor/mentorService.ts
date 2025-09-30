@@ -65,7 +65,6 @@ export default {
   },
 
   getMentorsByHealthFacilityId(healthFacilityId: number) {
-    console.log(healthFacilityId)
     return mentorRepo
         .query()
         .withAllRecursive(3)

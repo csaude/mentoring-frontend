@@ -41,7 +41,6 @@ const search = () => {
   Object.keys(params).forEach( (key) => (params[key] === '') && delete params[key]);
 
   mentorService.search(params).then((response) => {
-    // console.log(response)
   }).catch((error) => {
     console.error(error);
   });

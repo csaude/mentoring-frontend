@@ -24,7 +24,6 @@ export default {
   },
   async saveOrUpdate(form: any) {
     const formDTO = createDTOFromForm(form)
-    console.log(formDTO)
     return await api()
       .post('/forms/saveOrUpdate', formDTO)
       .then((resp) => {

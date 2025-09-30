@@ -172,6 +172,7 @@ import User from 'src/stores/model/user/User'
 import { onMounted, ref, toRaw, inject } from 'vue'
 import UsersService from 'src/services/api/user/UsersService'
 import useMentor from "src/composables/mentor/mentorMethods"
+import { Loading, QSpinnerRings } from 'quasar';
 
 
 const { createMentorFromDTO } = useMentor();
@@ -209,9 +210,9 @@ onMounted(() => {
 });
 
 const editMentor = (mentor) => {
-    selectedMentor.value = mentor;
-    emit('edit', mentor);
-}
+  selectedMentor.value = mentor;
+  emit('edit', mentor);
+};
 
 const clearSearchParams =()=> {
     searchParams.value = new Mentor({
@@ -219,6 +220,7 @@ const clearSearchParams =()=> {
     })
 }
 const search = () => {
+    Loading.show({ spinner: QSpinnerRings });
     const params = {
         userId: currUser.value.id,
         name: searchParams.value.employee.name,
@@ -232,7 +234,9 @@ const search = () => {
         response.data.forEach((dto) => {
             searchResults.value.push(createMentorFromDTO(dto));
         })
+        Loading.hide();
     }).catch((error) => {
+        Loading.hide();
         console.error(error);
       });
 };

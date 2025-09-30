@@ -23,7 +23,7 @@ export default function useFormSectionQuestion() {
         evaluationType: createEvaluationTypeFromDTO(formSectionQuestionDTO.evaluationType),
         responseType: createResponseTypeFromDTO(formSectionQuestionDTO.responseType),
         in_use: formSectionQuestionDTO.in_use,        
-        evaluationLocation: createEvaluationLocationFromDTO(formSectionQuestionDTO.evaluationLocationDTO)
+        evaluationLocation: createEvaluationLocationFromDTO(formSectionQuestionDTO.evaluationLocation)
         });
         return formSectionQuestion;
     }
@@ -44,7 +44,7 @@ export default function useFormSectionQuestion() {
             questionDTO: createDTOFromQuestion(formSectionQuestion.question),
             evaluationType: createDTOFromEvaluationType(formSectionQuestion.evaluationType),
             responseType: createDTOFromResponseType(formSectionQuestion.responseType),
-            evaluationLocationDTO: createDTOFromEvaluationLocation(formSectionQuestion.evaluationLocation)
+            evaluationLocation: createDTOFromEvaluationLocation(formSectionQuestion.evaluationLocation)
           }
         return  formQuestionDTO;
     }

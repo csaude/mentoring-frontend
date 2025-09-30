@@ -64,7 +64,6 @@
               :options="filteredProgrammaticAreas"
               option-value="id"
               option-label="name"
-              @filter="filterProgrammaticAreas"
               label="Área de Mentoria"
             >
               <template v-slot:no-option>
@@ -77,8 +76,9 @@
           <div class="col">
             <q-select
               class="col q-ml-md"
+              ref="evaluationLocationRef"
               v-model="form.evaluationLocation"
-              :options="usageLocationOptions"
+              :options="evaluationLocations"
               label="Local da Mentoria"
               option-value="uuid" 
               option-label="description"
@@ -111,9 +111,7 @@
             label="Número de Observações de Consulta"
             dense
             ref="targetPatientRef"
-            :rules="[(val) => !!val || 'Por favor indicar o Número de Observações de Consulta']"
-            lazy-rules
-            v-model="form.targetPatient"
+            v-model.number="form.targetPatient"
             type="number"
             :min="0"
           />
@@ -123,7 +121,7 @@
             label="Número de Avaliação de Fichas"
             dense
             ref="targetFileRef"
-            v-model="form.targetFile"
+            v-model.number="form.targetFile"
             type="number"
           />
         </div>
@@ -268,7 +266,8 @@
         <!-- Action Buttons -->
         <div class="row q-my-sm">
           <q-space />
-          <q-btn label="Cancelar" class="float-right" color="red" @click="cancel" />
+          <q-btn label="Fechar" class="float-right" color="yellow-7" @click="close" />
+          <q-btn label="Cancelar" class="float-right q-ml-md" color="red" @click="cancel" />
           <q-btn
             class="float-right q-ml-md"
             type="submit"
@@ -280,7 +279,6 @@
       </div>
     </div>
   </div>
-
   <!-- Form Questions Data Section -->
   <div >
     <ManageQuestions v-if="isFormQuestionsDataVisible" @goBack="goBack" @close="close"/>
@@ -290,7 +288,7 @@
 </template>
 
 <script setup>
-import { inject, ref, computed, onMounted, reactive, provide } from 'vue';
+import { inject, ref, computed, onMounted, reactive, provide, watch } from 'vue';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
 import FormSection from 'src/stores/model/form/FormSection';
 import programService from 'src/services/api/program/programService';
@@ -304,6 +302,7 @@ import useStepManager from 'src/composables/shared/systemUtils/useStepManager';
 import Section from 'src/stores/model/section/Section';
 import ManageQuestions from 'src/components/Forms/ManageQuestions.vue';
 import evaluationLocationService from 'src/services/api/question/evaluationLocationService';
+import evaluationTypeService from 'src/services/api/question/evaluationTypeService';
 
 // Inject the step from the parent
 const step = inject('step');
@@ -316,6 +315,7 @@ const form = inject('form')
 // Define refs for inputs and selects
 const programRef = ref(null);
 const programmaticAreaRef = ref(null);
+const evaluationLocationRef = ref(null);
 const nameRef = ref(null);
 const targetPatientRef = ref(null);
 const targetFileRef = ref(null);
@@ -327,16 +327,6 @@ const filterRedProgrammaticAreas = ref([]);
 // State tracking
 const isFormDataVisible = ref(true);
 const isFormQuestionsDataVisible = ref(false);
-const searchResults = ref([]);
-
-const usageLocations = ref([]); // Para armazenar as opções de Local da Mentoria
-
-const usageLocationOptions = computed(() =>
-  usageLocations.value.map(location => ({
-    uuid: location.uuid,
-    description: location.description,
-  }))
-);
 
 // Swal dialog methods
 const { alertError, alertSucess, alertWarningAction } = useSwal();
@@ -348,7 +338,51 @@ const sectioncolumns = [
   { name: 'options', label: 'Opções', field: 'options' },
 ];
 
+const previousEvaluationLocation = ref(null); // Store the previous selection
+const isReverting = ref(false);
 
+// Watch for changes in form.value.evaluationLocation
+watch(() => form.value.evaluationLocation, async (newVal, oldVal) => {
+  previousEvaluationLocation.value = JSON.parse(JSON.stringify(oldVal));
+  if (isReverting.value) {
+    isReverting.value = false; // Reset flag and skip execution
+    return;
+  }
+  const selectedObject = evaluationLocations.value.find(loc => loc.uuid === newVal);
+
+  if (newVal === "123e4567-e89b-12d3-a456-426614174001" || newVal === "123e4567-e89b-12d3-a456-426614174000") {
+    
+    // Check if there are any formSectionQuestions before proceeding
+    const hasQuestions = form.value.formSections.some(section => section.formSectionQuestions.length > 0);
+    if (!hasQuestions) {
+      return; // Do nothing if there are no formSectionQuestions
+    }
+
+    const selectedLocation = newVal === "123e4567-e89b-12d3-a456-426614174001" ? "Comunidade" : "Unidade Sanitária";
+
+    const result = await alertWarningAction(
+      `O Local da Mentoria das competências será atualizado para "${selectedLocation}". Deseja continuar?`
+    );
+
+    if (result) {
+      
+      // Confirmed, update all formSectionQuestions
+      form.value.evaluationLocation = selectedObject;
+      form.value.formSections.forEach((section) => {
+        section.formSectionQuestions.forEach((question) => {
+          question.evaluationLocation = selectedObject;
+        });
+      });
+      previousEvaluationLocation.value = selectedObject; // Update previous selection
+    } else {
+      isReverting.value = true;
+      // User canceled, revert to previous value
+      form.value.evaluationLocation = previousEvaluationLocation.value;
+    }
+  } else if (newVal === '123e4567-e89b-12d3-a456-426614174011') {
+    form.value.evaluationLocation = selectedObject;
+  }
+});
 
 // Computed properties for programs and programmatic areas
 const programs = computed(() => programService.piniaGetAll());
@@ -368,6 +402,9 @@ const filteredProgrammaticAreas = computed(() => {
 // Sections for the dropdown
 const sections = computed(() => sectionService.piniaGetAll());
 
+const evaluationLocations = computed(() => {
+  return evaluationLocationService.piniaGetAll() || [];
+});
 // Method for canceling the form
 const cancel = () => {
     // Alert the user about potential data loss
@@ -385,28 +422,24 @@ const cancel = () => {
 };
 
 const close =()=> {
-  emit('close');
+      // Alert the user about potential data loss
+      alertWarningAction('Tem certeza que deseja fechar? Todas as alterações não gravadas serão perdidas.')
+      .then((result) => {
+          if (result) {
+              // If the user confirms, proceed to emit the 'close' event
+              emit('close');
+          }
+      })
+      .catch((error) => {
+          console.error('Error with close confirmation:', error);
+          alertError('Ocorreu um erro ao tentar cancelar. Tente novamente.');
+      });
 }
-
-const fullLocation = computed(() =>{
-    if (!usageLocations.value || !Array.isArray(usageLocations.value)) {
-      return null; // Retorna null se a lista não estiver disponível ou não for um array
-    }
-    const res = null
-    usageLocations.value.forEach((location) => {
-      if (location.uuid === form.evaluationLocation){
-        res = location
-        console.log(res)
-      }
-    });
-      return res;
-});
 
 // Method to go to the questions form
 const goToFormQuestions = async (form) => {
-  
   // Reference array for validation
-  const refs = [programRef, programmaticAreaRef, nameRef, targetPatientRef, targetFileRef];
+  const refs = [programRef, programmaticAreaRef, evaluationLocationRef, nameRef, targetPatientRef, targetFileRef];
 
   // Check if all form inputs are valid
   const areFieldsValid = refs.every(ref => ref.value.validate());
@@ -421,43 +454,96 @@ const goToFormQuestions = async (form) => {
   const hasOngoingEdition = form.formSections.some(section => section.inEdition === true);
 
   if (!isTargetValid) {
-    // Show an error if neither targetFile nor targetPatient is valid
     alertError('É necessário que o campo número de observação de consulta ou de avaliação de ficha tenha um valor maior que 0.');
     return;
   }
 
   if (!hasFormSections) {
-    // Show an error if formSections is empty
     alertError('É necessário adicionar pelo menos uma secção antes de prosseguir.');
     return;
   }
 
   if (hasOngoingEdition) {
-    // Show an error if any form section is in edit mode
     alertError('Termine todas as edições de secções antes de prosseguir.');
     return;
   }
 
+  // Fetch evaluation types from Pinia
+  const evaluationFicha = evaluationTypeService.getByUuid("d5a6fc46-b4bb-4eeb-8c82-921836fdc31d"); // "Ficha"
+  const evaluationConsulta = evaluationTypeService.getByUuid("4ec6bfa7-9bc8-4e7f-9836-d67a476432f9"); // "Consulta"
+
+  let needsConfirmation = false;
+  let updateToFicha = false;
+  let updateToConsulta = false;
+
+  // Check if any formSectionQuestions exist
+  const hasQuestions = form.formSections.some(section => section.formSectionQuestions.length > 0);
+
+  if (hasQuestions) {
+    // Check if targetPatient is 0 and any question has evaluationType = "Consulta"
+    const hasEvaluationConsulta = form.formSections.some(section =>
+      section.formSectionQuestions.some(q => q.evaluationType?.uuid === evaluationConsulta.uuid)
+    );
+
+    if (form.targetPatient === 0 && hasEvaluationConsulta) {
+      needsConfirmation = true;
+      updateToFicha = true;
+    }
+
+    // Check if targetFile is 0 and any question has evaluationType = "Ficha"
+    const hasEvaluationFicha = form.formSections.some(section =>
+      section.formSectionQuestions.some(q => q.evaluationType?.uuid === evaluationFicha.uuid)
+    );
+
+    if (form.targetFile === 0 && hasEvaluationFicha) {
+      needsConfirmation = true;
+      updateToConsulta = true;
+    }
+  }
+
+  if (needsConfirmation) {
+    const message = [];
+    if (updateToFicha) {
+      message.push('O Tipo de Avaliação das competências será atualizado de "Consulta" para "Ficha" devido à alteração do número de observações de consulta.');
+    }
+    if (updateToConsulta) {
+      message.push('O Tipo de Avaliação das competências será atualizado de "Ficha" para "Consulta" devido à alteração do número de avaliações de fichas.');
+    }
+
+    const result = await alertWarningAction(message.join("\n\n"));
+
+    if (!result) {
+      return; // User canceled the update
+    }
+
+    // Apply changes if confirmed
+    if (updateToFicha) {
+      form.formSections.forEach(section => {
+        section.formSectionQuestions.forEach(question => {
+          if (question.evaluationType?.uuid === evaluationConsulta.uuid) {
+            question.evaluationType = { ...evaluationFicha };
+          }
+        });
+      });
+    }
+
+    if (updateToConsulta) {
+      form.formSections.forEach(section => {
+        section.formSectionQuestions.forEach(question => {
+          if (question.evaluationType?.uuid === evaluationFicha.uuid) {
+            question.evaluationType = { ...evaluationConsulta };
+          }
+        });
+      });
+    }
+  }
+
+  // Sort form sections before proceeding
   form.formSections.sort((a, b) => {
-    // Ensure that both sequences are numbers for proper sorting
     const sequenceA = parseInt(a.sequence, 10);
     const sequenceB = parseInt(b.sequence, 10);
-
     return sequenceA - sequenceB;
   });
-
-  // Handle evaluationLocation and evaluation_location_id
-  if (form.evaluationLocation && typeof form.evaluationLocation === 'string') {
-    usageLocations.value.forEach((location) => {
-      if (location.uuid === form.evaluationLocation){
-        form.evaluationLocation = location;
-        form.evaluation_location_id = location.uuid;
-      }
-    });
-  } else if (form.evaluationLocation && form.evaluationLocation.uuid) {
-    // Ensure the UUID is set
-    form.evaluation_location_id = form.evaluationLocation.uuid;
-  }
 
   if (areFieldsValid) {
     if (isEditStep.value) {
@@ -469,6 +555,7 @@ const goToFormQuestions = async (form) => {
     isFormQuestionsDataVisible.value = true;
   }
 };
+
 
 
 
@@ -573,10 +660,10 @@ const saveSection = (section) => {
     return;
   }
 
-  if (isDuplicateSequence) {
-    alertError('A sequência já está em uso. Por favor, insira uma sequência única.');
-    return;
-  }
+  // if (isDuplicateSequence) {
+  //   alertError('A sequência já está em uso. Por favor, insira uma sequência única.');
+  //   return;
+  // }
 
   // If no duplicates, allow saving the section
   section.inEdition = false;
@@ -664,12 +751,6 @@ const createNewSection = (newSectionDescription, props) => {
 
 // Mounted Lifecycle Hook
 onMounted(async () => {
-  try {
-    const response = await evaluationLocationService.getAll(); // Buscando os locais de uso
-    usageLocations.value = response.data?.content
-  } catch (error) {
-    console.error('Erro ao buscar locais de uso:', error);
-  }
   currUser.value = JSON.parse(JSON.stringify(UsersService.getLogedUser()));
 });
 
@@ -692,6 +773,7 @@ const cancelSection = (section) => {
   // Set inEdition to false to exit editing mode
   section.inEdition = false;
 };
+
 
 // Placeholder for filter functionality
 const filter = ref('');

@@ -367,7 +367,6 @@ const changeLifeCycle = (question) => {
   questionService
     .changeLifeCycleStatus(createDTOFromQuestion(question))
     .then((response) => {
-      console.log(response)
       if(response.status === 200 || response.status === 201){
         alertSucess('Operação efectuada com sucesso');
         questionService.update(question);
@@ -464,7 +463,6 @@ const search = async () => {
     .then((response) => {
       searchResults.value = [];
       if (response.status === 200 || (response.status === 201)) {
-        console.log(response.data.content?.length)
         if(response.data.content?.length > 0)
         composeQuestios(response.data.content)
         pagination.value.rowsNumber = response.data.totalSize; // Update rows count

@@ -36,7 +36,21 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: '/reports',
-        component: () => import('pages/rondas/Reports.vue'),
+        component: () => import('pages/reports/ReportsLayout.vue'),
+        children: [
+          {
+            path: '',
+            redirect: '/reports/rondas',
+          },
+          {
+            path: 'rondas',
+            component: () => import('pages/reports/RondasReport.vue'),
+          },
+          {
+            path: 'sessao-mentoria',
+            component: () => import('pages/reports/MentoringSessionReport.vue'),
+          },
+        ],
       },
       {
         path: '/settings',

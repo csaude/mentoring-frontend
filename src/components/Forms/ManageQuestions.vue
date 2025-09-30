@@ -179,7 +179,7 @@ const goBack = () => {
 
     if (formSectionsInEdit.length > 0) {
         // Warn the user about potential data loss
-        alertWarningAction('Há secções em modo de edição. Você pode perder dados não salvos. Deseja continuar?')
+        alertWarningAction('Há secções em modo de edição. Você pode perder dados não gravados. Deseja continuar?')
             .then((result) => {
                 if (result) {
                     // If the user confirms, update each section in edit mode

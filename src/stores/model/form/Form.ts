@@ -27,8 +27,8 @@ export default class Form extends Model {
       // Relationships
       programmaticArea: this.belongsTo(ProgrammaticArea, 'programmatic_area_id'),
       partner: this.belongsTo(Partner, 'partner_id'),
-      formSections: this.hasMany(FormSection, 'form_id'),
       evaluationLocation: this.belongsTo(EvaluatioLocation, 'evaluation_location_id'),
+      formSections: this.hasMany(FormSection, 'form_id'),
 
     };
   }

@@ -43,7 +43,6 @@ export default {
   },
   getLogedUser() {
     const userloged = JSON.stringify(localStorage.getItem('username'));
-    // console.log(userloged);
     return (
       userRepo
         .query()
@@ -76,7 +75,6 @@ export default {
     return res;
   },
   async saveUser(user: any) {
-    console.log(user)
     return await api()
       .post('/user/save', user)
       .then((resp) => {

@@ -129,7 +129,7 @@
               dense
               flat
               wrap-cells
-              :rows="formSection.formSectionQuestions"
+              :rows="sortedFormSectionQuestions"
               :columns="columns"
               row-key="uuid"
           >
@@ -144,10 +144,10 @@
                 <q-tr class="text-left bg-grey-3" :props="props">
                     <q-th style="width: 110px">{{ columns[0].label }}</q-th>
                     <q-th class="col">{{ columns[1].label }}</q-th>
-                    <q-th style="width: 120px">{{ columns[2].label }}</q-th>
-                    <q-th style="width: 190px">{{ columns[3].label }}</q-th>
-                    <q-th style="width: 190px">{{ columns[4].label }}</q-th>
-                    <q-th style="width: 90px">{{ columns[5].label }}</q-th>
+                    <q-th style="width: 100px">{{ columns[2].label }}</q-th>
+                    <q-th style="width: 170px">{{ columns[3].label }}</q-th>
+                    <q-th style="width: 170px">{{ columns[4].label }}</q-th>
+                    <q-th style="width: 190px">{{ columns[5].label }}</q-th>
                     <q-th style="width: 90px">{{ columns[6].label }}</q-th>
                 </q-tr>
             </template>
@@ -210,7 +210,6 @@
                             input-debounce="0"
                             dense
                             outlined
-                            :disable="!props.row.selected"
                             ref="responseTypeRef"
                             v-model="props.row.responseType"
                             :rules="[
@@ -234,7 +233,6 @@
                             input-debounce="0"
                             dense
                             outlined
-                            :disable="!props.row.selected"
                             ref="evaluationLocationRef"
                             v-model="props.row.evaluationLocation"
                             :rules="[
@@ -243,7 +241,7 @@
                             lazy-rules
                             option-value="id"
                             option-label="description"
-                            :options="getEvaluationLocationOptions(props.row)"
+                            :options="evaluationLocations"
                         />
                     </span>
                     <span v-else>
@@ -298,9 +296,9 @@ import { v4 as uuidv4 } from 'uuid';
 import QuestionCategory from 'src/stores/model/question/QuestionCategory';
 import evaluationTypeService from 'src/services/api/question/evaluationTypeService';
 import responseTypeService from 'src/services/api/question/responseTypeService';
-import questionService from "src/services/api/question/questionService";
 import formQuestionService from "src/services/api/form/formSectionQuestionService";
 import evaluationLocationService from 'src/services/api/question/evaluationLocationService'
+import EvaluatioLocation from 'src/stores/model/question/EvaluationLocation';
 
 // Alert utility
 const { alertSucess, alertError, alertWarningAction } = useSwal();
@@ -328,38 +326,20 @@ const searchParams = ref(
       program: null,
     }),
     evaluationType: new EvaluationType(),
+    evaluationLocation: new EvaluatioLocation(),
   })
 );
 
-const isLocationEditable = computed(() => selectedForm.value.evaluationLocation?.id === 3);
+const isLocationEditable = computed(() => selectedForm.value.evaluationLocation?.uuid === '123e4567-e89b-12d3-a456-426614174011');
 
-const getEvaluationLocationOptions = (formQuestion) => {
-  // Se `evaluationLocation.id !== 3`, force o mesmo ID de `selectedForm.evaluationLocation.id`
-  if (!isLocationEditable.value) {
-    formQuestion.evaluationLocation = responseLocations.value.find(
-      (location) => location.id === selectedForm.value.evaluationLocation?.id
-    );
-
-    // Filtra `responseLocations` para mostrar apenas a opção com o ID correspondente ao de `selectedForm.evaluationLocation.id`
-    responseLocations.value = responseLocations.value.filter(
-      (location) => location.id === selectedForm.value.evaluationLocation?.id
-    );
+const sortedFormSectionQuestions = computed(() => {
+  if (localFormSection.inEdition) {
+    return props.formSection.formSectionQuestions;
   }
-  
-  return responseLocations.value; // Sempre retorna as opções, mas será limitada a uma opção se `isLocationEditable` for false
-};
-
-
-onMounted(async() => {
-  try {
-    const response = await evaluationLocationService.getAll(); // Buscando os locais de uso
-    responseLocations.value = response.data?.content;
-  } catch (error) {
-    console.error('Erro ao buscar locais de uso:', error);
-    alertError('Não foi possível carregar os locais de uso.');
-  }
+  return [...props.formSection.formSectionQuestions].sort((a, b) => {
+    return a.sequence - b.sequence; // Numeric sorting by sequence
+  });
 });
-
 
 // Watch for changes in the prop and update the local copy if needed
 watch(() => props.formSection, (newValue) => {
@@ -387,11 +367,7 @@ const initNewQuestion = () => {
     question: new Question({ program: new Program() }),
     evaluationType: new EvaluationType(),
     responseType: new ResponseType(),
-    evaluationLocation: isLocationEditable.value
-      ? null // Permite escolher depois
-      : responseLocations.value.find(
-          (location) => location.id === selectedForm.value.evaluationLocation?.id
-        ),
+    evaluationLocation: new EvaluatioLocation()
   });
 
   localFormSection.formSectionQuestions.unshift(newQuestion);
@@ -497,8 +473,8 @@ const validateAndFinishEdition = () => {
                 // Check if any question in the other formSections matches the current one
                 const duplicateQuestion = localFormSection.formSectionQuestions.find(fq => fq.question.uuid === otherFormQuestion.question.uuid);
                 if (duplicateQuestion) {
-                alertError(`A competência "${duplicateQuestion.question.tableCode}" já foi adicionada em outra secção.`);
-                hasValidationErrors = true;
+                // alertError(`A competência "${duplicateQuestion.question.tableCode}" já foi adicionada em outra secção.`);
+                // hasValidationErrors = true;
                 }
             }
             }
@@ -506,10 +482,6 @@ const validateAndFinishEdition = () => {
         // Check if sequence is valid (not empty, number, and under 100)
         if (!sequence || isNaN(sequence) || sequence < 1 || sequence > 100) {
             alertError('Por favor, insira uma sequência válida para todas as competências.');
-            hasValidationErrors = true;
-        } else if (sequences.has(sequence)) {
-            // Check for duplicate sequence
-            alertError(`A sequência "${sequence}" já foi usada. Por favor, insira uma sequência única.`);
             hasValidationErrors = true;
         } else {
             sequences.add(sequence);
@@ -546,6 +518,12 @@ const validateAndFinishEdition = () => {
 
 
 const responseTypes = computed(() => responseTypeService.piniaGetAll());
+const evaluationLocations = computed(() => {
+  const allLocations = evaluationLocationService.piniaGetAll() || [];
+  if (isLocationEditable.value) return allLocations;
+  return selectedForm.value.evaluationLocation ? [selectedForm.value.evaluationLocation] : [];
+});
+
 
 const evaluationTypes = computed(() => {
   const allEvaluationTypes = evaluationTypeService.piniaGetAll();

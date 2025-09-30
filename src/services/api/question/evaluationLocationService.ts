@@ -11,7 +11,6 @@ export default {
     return await api()
       .get('/evaluationLocations/getAll')
       .then((resp) => {
-        console.log(resp)
         this.generateAndSaveEntityFromDTO(resp.data?.content);
         return resp;
       })

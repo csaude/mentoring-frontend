@@ -270,7 +270,6 @@ const search = async () => {
     .getAll(params)
     .then((response) => {
       searchResults.value = [];
-      console.log(response);
       response.data.content.forEach((dto) => {
         searchResults.value.push(createHealthFacilityFromDTO(dto));
       });

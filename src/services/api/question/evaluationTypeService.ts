@@ -37,4 +37,11 @@ export default {
       .orderBy('description', 'asc')
       .first();
   },
+  getByUuid(uuid: string) {
+    return repo
+      .query()
+      .where('uuid', uuid)
+      .orderBy('description', 'asc')
+      .first();
+  },
 };

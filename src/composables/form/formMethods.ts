@@ -73,7 +73,6 @@ export default function useForm() {
     }
 
     function createDTOsListFromFormQuestions(formQuestions: any) {
-      console.log(formQuestions)
       const { createDTOFromFormSectionQuestion } = useFormSectionQuestion();
       const generatedFormQuestions = [];
       formQuestions.forEach((formQuestion) => {

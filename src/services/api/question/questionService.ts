@@ -83,7 +83,6 @@ export default {
   },
   async saveQuestion(question: any) {
     const questionDTO = createDTOFromQuestion(question)
-    console.log(questionDTO)
     return await api()
       .post('/questions/save', questionDTO)
       .then((resp) => {
