@@ -133,6 +133,7 @@
           <!-- Seleção de tipo de recurso -->
           <div class="col-12 q-mb-sm">
             <q-option-group
+              v-if="addingResource"
               v-model="tipoRecurso"
               :options="resourceOptions"
               type="radio"
