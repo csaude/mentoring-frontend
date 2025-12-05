@@ -56,6 +56,11 @@ const routes: RouteRecordRaw[] = [
         path: '/settings',
         component: () => import('pages/Settings/Settings.vue'),
       },
+      {
+        path: '/progresso',
+        component: () => import('pages/Progress/Progress.vue'),
+        meta: { title: 'Progresso de Rondas/Sessões' },
+      },
     ],
   },
   {
@@ -64,8 +69,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('pages/Login/Login.vue'),
     meta: { requiresAuth: false },
   },
-  // Always leave this as last one,
-  // but you can also remove it
+  {
+    path: '/reset-password/:token',
+    name: 'ResetPassword',
+    component: () => import('pages/ResetPassword/ResetPassword.vue'),
+    meta: { requiresAuth: false },
+  },
   {
     path: '/:catchAll(.*)*',
     component: () => import('pages/ErrorNotFound.vue'),
