@@ -1,8 +1,8 @@
-import { defineStore } from 'pinia'
-import UserService from 'src/services/user/UserService'
-import { replaceOrInsert } from 'src/utils/storeUtils'
-import { paginateArray, flattenPages } from 'src/utils/paginationUtils'
-import { User } from 'src/entities/user/User'
+import { defineStore } from 'pinia';
+import UserService from 'src/services/user/UserService';
+import { replaceOrInsert } from 'src/utils/storeUtils';
+import { paginateArray, flattenPages } from 'src/utils/paginationUtils';
+import { User } from 'src/entities/user/User';
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -15,19 +15,19 @@ export const useUserStore = defineStore('user', {
       totalSize: 0,
       totalPages: 0,
       currentPage: 0,
-      pageSize: 100
-    }
+      pageSize: 100,
+    },
   }),
 
   actions: {
     async fetchUsers(params: any = {}) {
-      const defaultSize = this.pagination.pageSize
-      const page = params.page ?? 0
-      const size = params.size ?? defaultSize
-      const ignoreCache = params.ignoreCache ?? false
+      const defaultSize = this.pagination.pageSize;
+      const page = params.page ?? 0;
+      const size = params.size ?? defaultSize;
+      const ignoreCache = params.ignoreCache ?? false;
 
-      const isSearch = params.query.trim() !== ''
-      const useCache = !ignoreCache && !isSearch  && this.usersPages[page]
+      const isSearch = params.query.trim() !== '';
+      const useCache = !ignoreCache && !isSearch && this.usersPages[page];
 
       // if (useCache) {
       //   this.currentPageUsers = this.usersPages[page]
@@ -35,112 +35,140 @@ export const useUserStore = defineStore('user', {
       //   return
       // }
 
-      this.loading = true
-      this.error = null
+      this.loading = true;
+      this.error = null;
 
       try {
         const queryParams = {
           query: params.query?.trim() || '',
           page,
-          size
-        }
-        
-        const response = await UserService.getAll(queryParams)
-        const users = (response.content ?? []).map((dto: any) => User.fromDTO(dto))
+          size,
+        };
 
-        this.usersPages[page] = users
-        this.currentPageUsers = users
+        const response = await UserService.getAll(queryParams);
+        const users = (response.content ?? []).map((dto: any) =>
+          User.fromDTO(dto)
+        );
+
+        this.usersPages[page] = users;
+        this.currentPageUsers = users;
 
         this.pagination = {
           totalSize: response.total,
           totalPages: Math.ceil(response.total / size),
           currentPage: response.page,
-          pageSize: response.size
-        }
+          pageSize: response.size,
+        };
       } catch (error: any) {
-        this.error = 'Erro ao buscar utilizadores'
-        console.error(error)
+        this.error = 'Erro ao buscar utilizadores';
+        console.error(error);
       } finally {
-        this.loading = false
+        this.loading = false;
       }
-    }
-,
-
-
+    },
     getAllUsersAcrossPages(): User[] {
-      return flattenPages(this.usersPages)
+      return flattenPages(this.usersPages);
     },
 
     async saveUser(data: Partial<User>) {
-      this.error = null
+      this.error = null;
       try {
-        const user = data instanceof User ? data : new User(data)
-        console.log('Saving user:', user)
-        const dto = user.toDTO()
-        console.log('Saving user dto:', dto)
+        const user = data instanceof User ? data : new User(data);
+        console.log('Saving user:', user);
+        const dto = user.toDTO();
+        console.log('Saving user dto:', dto);
         const savedDto = dto.id
           ? await UserService.update(dto)
-          : await UserService.save(dto)
+          : await UserService.save(dto);
 
-        console.log('Saved user DTO:', savedDto)
-       
-        const saved = User.fromDTO(savedDto)
-        const page = this.pagination.currentPage
+        console.log('Saved user DTO:', savedDto);
+
+        const saved = User.fromDTO(savedDto);
+        const page = this.pagination.currentPage;
 
         if (!this.usersPages[page]) {
-          this.usersPages[page] = []
+          this.usersPages[page] = [];
         }
 
-        this.usersPages[page] = replaceOrInsert(this.usersPages[page], saved, 'username')
-        this.currentPageUsers = [...this.usersPages[page]]
-        this.currentUser = saved
+        this.usersPages[page] = replaceOrInsert(
+          this.usersPages[page],
+          saved,
+          'username'
+        );
+        this.currentPageUsers = [...this.usersPages[page]];
+        this.currentUser = saved;
 
-        return saved
+        return saved;
       } catch (error: any) {
-        this.error = 'Erro ao salvar utilizador'
-        console.error(error)
-        throw error
+        this.error = 'Erro ao salvar utilizador';
+        console.error(error);
+        throw error;
       }
     },
 
     async updateUserLifeCycleStatus(uuid: string, lifeCycleStatus: string) {
-  this.error = null
-  try {
-    const updatedDto = await UserService.updateLifeCycleStatus(uuid, lifeCycleStatus)
-    const updatedUser = User.fromDTO(updatedDto)
+      this.error = null;
+      try {
+        const updatedDto = await UserService.updateLifeCycleStatus(
+          uuid,
+          lifeCycleStatus
+        );
+        const updatedUser = User.fromDTO(updatedDto);
 
-    for (const page in this.usersPages) {
-      const index = this.usersPages[page].findIndex(u => u.uuid === uuid)
-      if (index !== -1) {
-        this.usersPages[page][index] = updatedUser
+        for (const page in this.usersPages) {
+          const index = this.usersPages[page].findIndex((u) => u.uuid === uuid);
+          if (index !== -1) {
+            this.usersPages[page][index] = updatedUser;
+          }
+        }
+
+        this.currentPageUsers =
+          this.usersPages[this.pagination.currentPage] ?? [];
+
+        if (this.currentUser?.uuid === uuid) {
+          this.currentUser = updatedUser;
+        }
+
+        return updatedUser;
+      } catch (error: any) {
+        this.error = 'Erro ao atualizar status do utilizador';
+        console.error(error);
+        throw error;
       }
-    }
+    },
 
-    this.currentPageUsers = this.usersPages[this.pagination.currentPage] ?? []
+    async updateUserPassword(uuid: string, newPassword: string) {
+      this.error = null;
+      try {
+        await UserService.updatePassword(uuid, newPassword);
+      } catch (error: any) {
+        this.error = 'Erro ao atualizar senha do utilizador';
+        console.error(error);
+        throw error;
+      }
+    },
 
-    if (this.currentUser?.uuid === uuid) {
-      this.currentUser = updatedUser
-    }
+    async forgotPassword(payload: any) {
+      this.error = null;
+      try {
+        await UserService.forgotPassword(payload);
+      } catch (error: any) {
+        this.error =
+          'Erro ao enviar pedido de recuperação de senha do utilizador';
+        console.error(error);
+        throw error;
+      }
+    },
 
-    return updatedUser
-  } catch (error: any) {
-    this.error = 'Erro ao atualizar status do utilizador'
-    console.error(error)
-    throw error
-  }
-},
-
-async updateUserPassword(uuid: string, newPassword: string) {
-  this.error = null
-  try {
-    await UserService.updatePassword(uuid, newPassword)
-  } catch (error: any) {
-    this.error = 'Erro ao atualizar senha do utilizador'
-    console.error(error)
-    throw error
-  }
-}
-
-
-  }
-})
+    async resetPasswordWithToken(payload: any) {
+      this.error = null;
+      try {
+        await UserService.resetPasswordWithToken(payload);
+      } catch (error: any) {
+        this.error = 'Erro ao enviar recuperar senha do utilizador';
+        console.error(error);
+        throw error;
+      }
+    },
+  },
+});
