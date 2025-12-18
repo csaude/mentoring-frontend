@@ -146,7 +146,7 @@ const usernameRef = ref(null);
 const passwordRef = ref(null);
 const submitting = ref(false);
 const router = useRouter();
-const { alertError } = useSwal();
+const { alertSucess, alertError } = useSwal();
 const appVersion = version;
 
 const showForgotPassword = ref(false);
@@ -171,6 +171,8 @@ const sendRecoveryEmail = async () => {
     });
     submittingRecovery.value = false;
     showForgotPassword.value = false;
+    alertSucess('Email enviado com sucesso. Verifique sua caixa de correio.');
+    recoveryEmail.value = '';
   } catch (err) {
     submittingRecovery.value = false;
     alertError(
