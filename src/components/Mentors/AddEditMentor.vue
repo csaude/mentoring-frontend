@@ -257,13 +257,27 @@
               </q-select>
             </div>
             <div class="q-mt-lg">
-              <div class="row items-center q-mb-md">
-                <q-icon name="local_hospital" size="sm" />
-                <span class="q-pl-sm text-subtitle2">Unidade Sanitária</span>
+              <div class="row items-center q-mb-md justify-between">
+                <div class="row items-center">
+                  <q-icon name="local_hospital" size="sm" />
+                  <span class="q-pl-sm text-subtitle2">Unidade Sanitária</span>
+                </div>
+                <q-btn
+                  icon="add"
+                  dense
+                  label="Adicionar Unidade Sanitária"
+                  color="primary"
+                  :disable="!canAddLocation"
+                  @click="addLocation"
+                />
               </div>
               <q-separator color="grey-13" size="1px" />
             </div>
-            <div class="row q-my-sm">
+            <div
+              v-for="(location, index) in mentor.employee.locations"
+              :key="index"
+              class="row q-my-sm"
+            >
               <q-select
                 class="col"
                 use-input
@@ -276,11 +290,12 @@
                 ref="provinceRef"
                 lazy-rules
                 :rules="[(val) => !!val || 'Por favor indicar a Província']"
-                v-model="mentor.employee.locations[0].province"
+                v-model="location.province"
                 :options="provinces"
                 option-value="id"
                 option-label="designation"
                 label="Província"
+                :disable="index > 0"
               />
 
               <q-select
@@ -294,12 +309,12 @@
                 ref="districtRef"
                 lazy-rules
                 :rules="[(val) => !!val || 'Por favor indicar o Distrito']"
-                v-model="mentor.employee.locations[0].district"
-                :options="filterRedDistricts"
+                v-model="location.district"
+                :options="filterRedDistricts[index] || []"
+                @filter="(val, update) => filterDistricts(val, update, index)"
+                @update:model-value="(val) => onChangeDistrito(val, index)"
                 option-value="id"
                 option-label="description"
-                @filter="filterDistricts"
-                @update:model-value="onChangeDistrito"
                 label="Distrito"
               >
                 <template v-slot:no-option>
@@ -324,11 +339,13 @@
                 :rules="[
                   (val) => !!val || 'Por favor indicar a Unidade Sanitária',
                 ]"
-                v-model="mentor.employee.locations[0].healthFacility"
-                :options="filterRedHealthFacilities"
+                v-model="location.healthFacility"
+                :options="filterRedHealthFacilities[index] || []"
+                @filter="
+                  (val, update) => filterHealthFacilities(val, update, index)
+                "
                 option-value="id"
                 option-label="healthFacility"
-                @filter="filterHealthFacilities"
                 label="Unidade Sanitária"
               >
                 <template v-slot:no-option>
@@ -339,6 +356,18 @@
                   </q-item>
                 </template>
               </q-select>
+              <q-checkbox
+                v-model="location.isInternal"
+                label="Interno"
+                @update:model-value="() => setInternalLocation(index)"
+              />
+              <q-btn
+                flat
+                icon="delete"
+                color="red"
+                v-if="mentor.employee.locations.length > 1"
+                @click="removeLocation(index)"
+              />
             </div>
             <div class="row q-my-sm">
               <q-space />
@@ -388,7 +417,11 @@ const professionalCategoryStore = useProfessionalCategoryStore();
 const partnerStore = usePartnerStore();
 
 // State
-const mentor = ref(new Mentor({ employee: new Employee({ locations: [{ location: new Location() }] }) }));
+const mentor = ref(
+  new Mentor({
+    employee: new Employee({ locations: [{ location: new Location() }] }),
+  })
+);
 const emit = defineEmits(['goToMentoringAreas', 'close']);
 const { createDTOFromMentor, createMentorFromDTO } = useMentor();
 const { stringContains } = useStringUtils();
@@ -417,6 +450,19 @@ const districtRef = ref(null);
 const hfRef = ref(null);
 const myForm = ref(null);
 
+const addLocation = () => {
+  const baseProvince = mentor.value.employee.locations[0]?.province;
+
+  mentor.value.employee.locations.push(
+    new Location({
+      province: baseProvince, // 🔒 mesma província
+      district: null,
+      healthFacility: null,
+      isInternal: false,
+    })
+  );
+};
+
 // Props
 const selectedMentor = inject('selectedMentor');
 const step = inject('step');
@@ -426,39 +472,87 @@ const mentorLocations = ref([]);
 onMounted(() => {
   if (isEditStep.value) {
     mentor.value = Object.assign({}, selectedMentor.value);
-    selectedMentorLaborInfo.value = mentor.value.employee.partner?.name === 'MISAU' ? 'SNS' : 'ONG';
-    healthFacilityStore.fetchByDistrictId(mentor.value.employee.locations[0].district?.id);
+    selectedMentorLaborInfo.value =
+      mentor.value.employee.partner?.name === 'MISAU' ? 'SNS' : 'ONG';
+    healthFacilityStore.fetchByDistrictId(
+      mentor.value.employee.locations[0].district?.id
+    );
   }
 });
-
 
 // Computed
 const isPartnerMentor = computed(() => selectedMentorLaborInfo.value === 'ONG');
 const provinces = computed(() => provinceStore.getAllProvincesAcrossPages());
-const categories = computed(() => professionalCategoryStore.getAllCategoriesAcrossPages());
+const categories = computed(() =>
+  professionalCategoryStore.getAllCategoriesAcrossPages()
+);
 const partners = computed(() =>
-  partnerStore.getAllPartnersAcrossPages().filter(p => p.name !== 'MISAU')
-)
+  partnerStore.getAllPartnersAcrossPages().filter((p) => p.name !== 'MISAU')
+);
 
-
-const districts = computed(() => {
-  const provinceId = mentor.value.employee.locations[0].province?.id;
-  if (!provinceId) return [];
-  return districtStore.getAllDistrictsAcrossPages().filter((district) => district.province?.id === provinceId);
+const lockedProvince = computed(() => {
+  // Para nova implementacao de US onde e interno
+  return mentor.value.employee.locations[0]?.province ?? null;
 });
 
-const healthFacilities = computed(() => healthFacilityStore.currentPageHealthFacilities);
+const canAddLocation = computed(() => {
+  const first = mentor.value.employee.locations[0];
+  return !!first?.province;
+});
+
+const getDistrictsByLocation = (index) => {
+  const provinceId = mentor.value.employee.locations[index]?.province?.id;
+  if (!provinceId) return [];
+
+  return districtStore
+    .getAllDistrictsAcrossPages()
+    .filter((d) => d.province?.id === provinceId);
+};
+
+const healthFacilities = computed(
+  () => healthFacilityStore.currentPageHealthFacilities
+);
 
 // Validações
 const isValidEmail = (email) => /^[A-Za-z0-9+_.-]+@(.+)$/.test(email);
 const isValidNuit = (nuit) => nuit !== '' && !stringContains(nuit, '#');
-const isValidTrainingYear = (year) => year >= 1960 && year !== '' && !stringContains(year, '#');
+const isValidTrainingYear = (year) =>
+  year >= 1960 && year !== '' && !stringContains(year, '#');
 const isMinYear = (year) => year >= 1960;
 const isMaxYear = (year) => year <= new Date().getFullYear();
-const isValidPhoneNumber = (phoneNumber) => phoneNumber !== '' && !stringContains(phoneNumber, '_');
+const isValidPhoneNumber = (phoneNumber) =>
+  phoneNumber !== '' && !stringContains(phoneNumber, '_');
 
 // Handlers
+const setInternalLocation = (selectedIndex) => {
+  // Para nova implementacao de US onde e interno
+  mentor.value.employee.locations.forEach((loc, index) => {
+    loc.isInternal = index === selectedIndex;
+  });
+};
+
+const removeLocation = (index) => {
+  // Para nova implementacao de US onde e interno
+  const removed = mentor.value.employee.locations[index];
+  mentor.value.employee.locations.splice(index, 1);
+
+  if (removed.isInternal) {
+    mentor.value.employee.locations.forEach((loc) => (loc.isInternal = false));
+  }
+};
+
 const submitForm = () => {
+  const internalLocations = mentor.value.employee.locations.filter(
+    (l) => l.isInternal
+  );
+
+  if (internalLocations.length !== 1) {
+    alertError(
+      'Deve indicar exatamente UMA Unidade Sanitária onde o mentor é interno.'
+    );
+    return;
+  }
+
   nameRef.value.validate();
   surnameRef.value.validate();
   nuitRef.value.validate();
@@ -468,10 +562,11 @@ const submitForm = () => {
   trainingYearRef.value.validate();
   vinculoRef.value.validate();
   if (!mentor.value.employee.partner) partnerRef.value?.validate();
-  if (mentor.value.employee.partner) partnerRefHasError.value = partnerRef.value?.hasError;
-  provinceRef.value.validate();
-  districtRef.value.validate();
-  hfRef.value.validate();
+  if (mentor.value.employee.partner)
+    partnerRefHasError.value = partnerRef.value?.hasError;
+  provinceRef.value?.forEach((r) => r.validate());
+  districtRef.value?.forEach((r) => r.validate());
+  hfRef.value?.forEach((r) => r.validate());
 
   if (
     !nameRef.value.hasError &&
@@ -481,38 +576,44 @@ const submitForm = () => {
     !categoryRef.value.hasError &&
     !trainingYearRef.value.hasError &&
     !vinculoRef.value.hasError &&
-    !provinceRef.value.hasError &&
-    !districtRef.value.hasError &&
-    !hfRef.value.hasError &&
+    !provinceRef.value?.some((r) => r.hasError) &&
+    !districtRef.value?.some((r) => r.hasError) &&
+    !hfRef.value?.some((r) => r.hasError) &&
     !partnerRefHasError.value
   ) {
     Loading.show({ spinner: QSpinnerRings });
     const target_copy = Object.assign({}, mentor.value);
     const dto = createDTOFromMentor(new Mentor(target_copy));
 
-    const action = isEditStep.value ? mentorService.update(dto) : mentorService.save(dto);
-    action.then((resp) => {
-      if (resp.status === 200 || resp.status === 201) {
-        if (isEditStep.value) {
-          alertSucess('Mentor actualizado.').then(() => emit('close'));
+    const action = isEditStep.value
+      ? mentorService.update(dto)
+      : mentorService.save(dto);
+    action
+      .then((resp) => {
+        if (resp.status === 200 || resp.status === 201) {
+          if (isEditStep.value) {
+            alertSucess('Mentor actualizado.').then(() => emit('close'));
+          } else {
+            alertSucessAction(
+              'Mentor criado com sucesso, avançar para áreas de mentória'
+            ).then((result) => {
+              if (result) {
+                selectedMentor.value = createMentorFromDTO(resp.data);
+                emit('goToMentoringAreas', selectedMentor.value);
+              } else {
+                emit('close');
+              }
+            });
+          }
         } else {
-          alertSucessAction('Mentor criado com sucesso, avançar para áreas de mentória').then((result) => {
-            if (result) {
-              selectedMentor.value = createMentorFromDTO(resp.data);
-              emit('goToMentoringAreas', selectedMentor.value);
-            } else {
-              emit('close');
-            }
-          });
+          alertError(resp.response?.data?.message || resp.message);
         }
-      } else {
-        alertError(resp.response?.data?.message || resp.message);
-      }
-      Loading.hide();
-    }).catch((err) => {
-      console.error(err);
-      Loading.hide();
-    });
+        Loading.hide();
+      })
+      .catch((err) => {
+        console.error(err);
+        Loading.hide();
+      });
   }
 };
 
@@ -521,11 +622,20 @@ const onChangeProvincia = () => {
   mentor.value.employee.locations[0].healthFacility = '';
 };
 
-const onChangeDistrito = async (district) => {
-  mentor.value.employee.locations[0].healthFacility = '';
-  if (district?.id) {
-    await healthFacilityStore.fetchByDistrictId(district.id);
+const onChangeDistrito = async (district, index) => {
+  const loc = mentor.value.employee.locations[index];
+  loc.healthFacility = null;
+
+  if (!district?.id) {
+    filterRedHealthFacilities.value[index] = [];
+    return;
   }
+
+  await healthFacilityStore.fetchByDistrictId(district.id);
+
+  filterRedHealthFacilities.value[index] = [
+    ...healthFacilityStore.currentPageHealthFacilities,
+  ];
 };
 
 const onChangeVinculo = async (selected) => {
@@ -552,9 +662,53 @@ const filterItems = (source, key, val, update, targetRef) => {
   }
 };
 
-const filterDistricts = (val, update) => filterItems(districts, 'description', val, update, filterRedDistricts);
-const filterHealthFacilities = (val, update) => filterItems(healthFacilities, 'healthFacility', val, update, filterRedHealthFacilities);
-const filterCategories = (val, update) => filterItems(categories, 'description', val, update, filterRedCategories);
-const filterPartners = (val, update) => filterItems(partners, 'description', val, update, filterRedPartners);
+watch(
+  // Para nova implementacao de US onde e interno
+  () => mentor.value.employee.locations,
+  (locations) => {
+    const baseProvince = locations[0]?.province;
+    if (!baseProvince) return;
+
+    locations.forEach((loc, index) => {
+      if (index > 0 && loc.province?.id !== baseProvince.id) {
+        loc.province = baseProvince;
+        loc.district = null;
+        loc.healthFacility = null;
+      }
+    });
+  },
+  { deep: true }
+);
+
+const filterDistricts = (val, update, index) => {
+  const source = getDistrictsByLocation(index);
+
+  update(() => {
+    filterRedDistricts.value[index] =
+      val === ''
+        ? source
+        : source.filter((d) =>
+            d.description.toLowerCase().includes(val.toLowerCase())
+          );
+  });
+};
+
+const filterHealthFacilities = (val, update, index) => {
+  const source = filterRedHealthFacilities.value[index] || [];
+
+  update(() => {
+    filterRedHealthFacilities.value[index] =
+      val === ''
+        ? source
+        : source.filter((hf) =>
+            hf.healthFacility.toLowerCase().includes(val.toLowerCase())
+          );
+  });
+};
+
+const filterCategories = (val, update) =>
+  filterItems(categories, 'description', val, update, filterRedCategories);
+const filterPartners = (val, update) =>
+  filterItems(partners, 'description', val, update, filterRedPartners);
 </script>
 <style></style>

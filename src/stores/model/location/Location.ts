@@ -20,7 +20,10 @@ export default class Location extends Model {
       province: this.belongsTo(Province, 'province_id'),
       district: this.belongsTo(District, 'district_id'),
       employee: this.belongsTo(Employee, 'employee_id'),
-      healthFacility: this.belongsTo(HealthFacility, 'healthFacility_id')
+      healthFacility: this.belongsTo(HealthFacility, 'healthFacility_id'),
+
+      // UI ONLY
+      isInternal: this.attr(false),
     };
   }
 
