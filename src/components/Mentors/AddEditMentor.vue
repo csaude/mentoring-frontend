@@ -469,14 +469,39 @@ const step = inject('step');
 const isEditStep = computed(() => step.value === 'edit');
 const mentorLocations = ref([]);
 
+// onMounted(() => {
+//   if (isEditStep.value) {
+//     mentor.value = Object.assign({}, selectedMentor.value);
+//     console.log(mentor.value);
+//     selectedMentorLaborInfo.value =
+//       mentor.value.employee.partner?.name === 'MISAU' ? 'SNS' : 'ONG';
+//     healthFacilityStore.fetchByDistrictId(
+//       mentor.value.employee.locations[0].district?.id
+//     );
+//   }
+// });
+
 onMounted(() => {
   if (isEditStep.value) {
-    mentor.value = Object.assign({}, selectedMentor.value);
+    // Copiar mantendo proxies
+    mentor.value = selectedMentor.value;
+
+    const internalHFId = mentor.value.internalLocation?.healthFacility?.id;
+
+    if (internalHFId) {
+      mentor.value.employee.locations.forEach((loc) => {
+        loc.isInternal = loc.healthFacility?.id === internalHFId;
+      });
+    }
+
     selectedMentorLaborInfo.value =
       mentor.value.employee.partner?.name === 'MISAU' ? 'SNS' : 'ONG';
-    healthFacilityStore.fetchByDistrictId(
-      mentor.value.employee.locations[0].district?.id
-    );
+
+    if (mentor.value.employee.locations[0]?.district?.id) {
+      healthFacilityStore.fetchByDistrictId(
+        mentor.value.employee.locations[0].district.id
+      );
+    }
   }
 });
 
