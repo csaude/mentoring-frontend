@@ -1,75 +1,71 @@
-import axios, {
-  Axios,
-  AxiosInstance,
-  AxiosRequestConfig,
-  AxiosResponse,
-} from 'axios';
-import { useSystemUtils } from 'src/composables/shared/systemUtils/systemUtils';
-import { LocalStorage } from 'quasar';
-import useNotify from 'src/composables/shared/notify/useNotify';
-// import { Notify } from 'quasar';
-
-const { website } = useSystemUtils();
-const { notifyError } = useNotify();
+import axios from 'axios'
+import { ENV } from 'src/config/env'
 
 const instance = axios.create({
-  baseURL: 'http://localhost:8087/api',
+  baseURL: ENV.API_BASE_URL,
   responseType: 'json',
   validateStatus(status) {
-    return status >= 200 && status < 300;
+    return status >= 200 && status < 300
   },
-});
-const numTries = 0;
+})
 
-// Função para fazer o logout
 function logout() {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
-  localStorage.removeItem('username');
-  localStorage.removeItem('userInfo');
-  localStorage.removeItem('tokenExpiration');
-  window.location.reload();
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('username')
+  localStorage.removeItem('userInfo')
+  localStorage.removeItem('tokenExpiration')
+  window.location.reload()
 }
 
-// Função para iniciar o temporizador
 function fixNextTokenExpirationTime() {
-  localStorage.setItem('tokenExpiration', String(Date.now() + 900000));
+  localStorage.setItem(
+    'tokenExpiration',
+    String(Date.now() + ENV.ACCESS_TOKEN_TTL)
+  )
 }
 
-// Request interceptor for API calls
 instance.interceptors.request.use(
   (request) => {
-    const userloged = localStorage.getItem('userInfo');
+    const userLogged = localStorage.getItem('userInfo')
+
     request.headers = {
+      ...(request.headers ?? {}),
       Accept: 'application/json',
-    };
-    if (request.url === '/auth/refresh') {
-      delete request.headers.Authorization;
-    } else if (userloged != null && userloged != 'null') {
-      const tokenExpiration = localStorage.getItem('tokenExpiration');
-      const currentTime = Date.now();
-
-      if (tokenExpiration && currentTime < Number(tokenExpiration)) {
-        // O token ainda é válido, reiniciar o temporizador
-        fixNextTokenExpirationTime();
-      } else {
-        // O token expirou, fazer o logout
-        localStorage.setItem('tokenExpiration', '0');
-        logout();
-        return; // Interromper a solicitação
-      }
-      const authToken = localStorage.getItem('access_token');
-      request.headers.Authorization = `Bearer ${authToken}`;
-    } else {
-      delete request.headers.Authorization;
     }
-    return request;
-  },
-  (error) => {
-    Promise.reject(error);
-  }
-);
 
-export default () => {
-  return instance;
-};
+    if (request.url === ENV.REFRESH_TOKEN_ENDPOINT) {
+      delete (request.headers as any).Authorization
+      return request
+    }
+
+    if (userLogged && userLogged !== 'null') {
+      const tokenExpiration = localStorage.getItem('tokenExpiration')
+      const now = Date.now()
+
+      if (tokenExpiration && now < Number(tokenExpiration)) {
+        fixNextTokenExpirationTime()
+      } else {
+        localStorage.setItem('tokenExpiration', '0')
+        logout()
+        return Promise.reject(
+          new axios.Cancel('Token expirado (client-side)')
+        )
+      }
+
+      const token = localStorage.getItem('access_token')
+      if (token) {
+        ;(request.headers as any).Authorization = `Bearer ${token}`
+      } else {
+        delete (request.headers as any).Authorization
+      }
+    } else {
+      delete (request.headers as any).Authorization
+    }
+
+    return request
+  },
+  (error) => Promise.reject(error)
+)
+
+export default () => instance
