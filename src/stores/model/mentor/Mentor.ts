@@ -16,7 +16,8 @@ export default class Mentor extends Model {
       nivel_de_acesso: this.attr(''),
       // Relationships
       employee: this.belongsTo(Employee, 'employee_id'),
-      tutorProgrammaticAreas: this.hasMany(TutorProgrammaticArea, 'mentor_id')
+      tutorProgrammaticAreas: this.hasMany(TutorProgrammaticArea, 'mentor_id'),
+      internalLocation: this.attr(null),
     };
   }
 
